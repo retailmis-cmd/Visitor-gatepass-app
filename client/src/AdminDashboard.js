@@ -16,7 +16,8 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 import ListIcon from '@mui/icons-material/List';
 
-const API_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL ||
+  (window.location.hostname === 'localhost' ? 'http://localhost:5000' : window.location.origin);
 
 const DROPDOWN_CATEGORIES = [
   { key: 'purpose', label: 'Purpose' },

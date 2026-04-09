@@ -184,8 +184,8 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
                 required
               >
                 <MenuItem value="">-- Select --</MenuItem>
-                <MenuItem value="Inward">Inward</MenuItem>
-                <MenuItem value="Outward">Outward</MenuItem>
+                <MenuItem value="INWARD">Inward</MenuItem>
+                <MenuItem value="OUTWARD">Outward</MenuItem>
               </TextField>
               <TextField
                 label="In-Time"

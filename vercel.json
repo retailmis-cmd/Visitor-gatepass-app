@@ -1,7 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install",
-  "buildCommand": "cd client && rm -rf node_modules/.cache && npm install --legacy-peer-deps && CI=false npx react-scripts build",
+  "buildCommand": "npm run build",
   "outputDirectory": "client/build",
   "framework": null,
   "functions": {

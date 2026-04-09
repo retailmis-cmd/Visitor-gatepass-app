@@ -147,7 +147,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
       const text = await res.text();
       let data;
       try { data = JSON.parse(text); } catch { throw new Error('Backend not hit (HTML returned)'); }
-      if (!res.ok) throw new Error(data.error || 'Unable to save visitor.');
+      if (!res.ok) throw new Error((data.error || 'Unable to save visitor.') + (data.detail ? ': ' + data.detail : ''));
       if (onDirty) onDirty(false);
       resetForm();
       onVisitorAdded();

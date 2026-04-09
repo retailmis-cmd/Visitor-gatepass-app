@@ -388,7 +388,7 @@ app.post('/visitor', async (req, res) => {
     res.json(row);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to add visitor' });
+    res.status(500).json({ error: 'Failed to add visitor', detail: err.message });
   }
 });
 

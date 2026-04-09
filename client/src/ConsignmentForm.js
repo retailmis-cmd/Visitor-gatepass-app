@@ -54,7 +54,7 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
     const fetchLocations = async () => {
       if (user?.role === 'admin') {
         try {
-          const res = await fetch(`${apiUrl}/admin/locations`, { headers: authHeaders });
+          const res = await fetch(`${apiUrl}/locations`, { headers: authHeaders });
           const data = await res.json();
           setAvailableLocations(Array.isArray(data) ? data.map((l) => l.name) : []);
         } catch { setAvailableLocations([]); }

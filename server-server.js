@@ -559,6 +559,17 @@ app.delete('/consignments/:id', authenticate, async (req, res) => {
   }
 });
 
+// ================= LOCATIONS (Public) =================
+
+app.get('/locations', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM locations ORDER BY name ASC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch locations' });
+  }
+});
+
 // ================= LOCATIONS (Admin) =================
 
 app.get('/admin/locations', authenticate, requireAdmin, async (req, res) => {

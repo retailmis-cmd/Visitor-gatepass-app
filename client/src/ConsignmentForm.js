@@ -301,7 +301,7 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
               select
               fullWidth
               required
-              disabled={availableLocations.length === 1}
+
             >
               <MenuItem value="">-- Select Location --</MenuItem>
               {availableLocations.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}

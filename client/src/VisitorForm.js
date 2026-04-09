@@ -294,7 +294,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
               select
               fullWidth
               required
-              disabled={availableLocations.length === 1}
+
             >
               <MenuItem value="">-- Select Location --</MenuItem>
               {availableLocations.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}

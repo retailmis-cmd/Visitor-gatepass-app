@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install && npm run build",
+  "installCommand": "npm install",
+  "buildCommand": "cd client && npm install --legacy-peer-deps && npm run build",
   "outputDirectory": "client/build",
   "framework": null,
   "functions": {

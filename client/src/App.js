@@ -25,8 +25,9 @@ import ReportDownload from './ReportDownload';
 import AdminDashboard from './AdminDashboard';
 import './App.css';
 
-const API_URL = process.env.REACT_APP_API_URL ||
-  (window.location.hostname === 'localhost' ? 'http://localhost:5000' : window.location.origin);
+const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000'
+  : window.location.origin;
 const drawerWidth = 260;
 
 const theme = createTheme({

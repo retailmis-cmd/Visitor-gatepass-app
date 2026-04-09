@@ -827,7 +827,11 @@ app.use((req, res) => {
 });
 
 // ================= START =================
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📧 Email configured: ${process.env.SMTP_USER}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📧 Email configured: ${process.env.SMTP_USER}`);
+  });
+}
+
+module.exports = app;

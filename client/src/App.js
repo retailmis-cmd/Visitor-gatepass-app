@@ -25,7 +25,7 @@ import ReportDownload from './ReportDownload';
 import AdminDashboard from './AdminDashboard';
 import './App.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:5000';
 const drawerWidth = 260;
 
 const theme = createTheme({
@@ -219,7 +219,7 @@ function App() {
                 </Typography>
               </Stack>
               <LoginPage
-                onLogin={(p) => { if (!handleLogin(p)) return false; return true; }}
+                onLogin={async (p) => handleLogin(p)}
                 onSwitchMode={() => setAuthMode('signup')}
                 onForgotPassword={() => setAuthMode('forgot')}
               />

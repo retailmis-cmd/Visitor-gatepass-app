@@ -16,7 +16,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 import ListIcon from '@mui/icons-material/List';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL ?? 'http://localhost:5000';
 
 const DROPDOWN_CATEGORIES = [
   { key: 'purpose', label: 'Purpose' },
@@ -58,8 +58,9 @@ export default function AdminDashboard({ user, token }) {
     try {
       const res = await fetch(`${API_URL}/admin/users`, { headers: authHeaders });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       setUsers(Array.isArray(data) ? data : []);
-    } catch { alert('Failed to load users'); }
+    } catch (err) { console.error('Failed to load users:', err); alert(`Failed to load users: ${err.message}`); }
     finally { setLoading(false); }
   }, [token]);
 
@@ -67,8 +68,9 @@ export default function AdminDashboard({ user, token }) {
     try {
       const res = await fetch(`${API_URL}/admin/locations`, { headers: authHeaders });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       setLocations(Array.isArray(data) ? data : []);
-    } catch { alert('Failed to load locations'); }
+    } catch (err) { console.error('Failed to load locations:', err); alert(`Failed to load locations: ${err.message}`); }
   }, [token]);
 
   const fetchDropdownOptions = useCallback(async (category) => {

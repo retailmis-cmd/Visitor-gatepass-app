@@ -7,7 +7,7 @@ export default function LoginPage({ onLogin, onSwitchMode, onForgotPassword }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -23,7 +23,7 @@ export default function LoginPage({ onLogin, onSwitchMode, onForgotPassword }) {
 
     setLoading(true);
     try {
-      const success = onLogin({ email, password });
+      const success = await onLogin({ email, password });
       if (!success) {
         setError('Invalid email or password. Please try again.');
       }

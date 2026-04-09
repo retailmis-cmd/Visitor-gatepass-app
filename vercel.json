@@ -1,6 +1,32 @@
 {
-  "buildCommand": "npm install && npm run build",
-  "outputDirectory": "build",
-  "framework": "create-react-app"
+  "version": 2,
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/build",
+  "framework": null,
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/health", "destination": "/api/index.js" },
+    { "source": "/signup", "destination": "/api/index.js" },
+    { "source": "/login", "destination": "/api/index.js" },
+    { "source": "/visitor", "destination": "/api/index.js" },
+    { "source": "/visitors", "destination": "/api/index.js" },
+    { "source": "/visitors/:path*", "destination": "/api/index.js" },
+    { "source": "/consignment", "destination": "/api/index.js" },
+    { "source": "/consignments", "destination": "/api/index.js" },
+    { "source": "/consignments/:path*", "destination": "/api/index.js" },
+    { "source": "/admin/:path*", "destination": "/api/index.js" },
+    { "source": "/dropdown-options", "destination": "/api/index.js" },
+    { "source": "/reports/:path*", "destination": "/api/index.js" },
+    { "source": "/locations", "destination": "/api/index.js" },
+    { "source": "/forgot-password", "destination": "/api/index.js" },
+    { "source": "/reset-password", "destination": "/api/index.js" },
+    { "source": "/api/:path*", "destination": "/api/index.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
+
 

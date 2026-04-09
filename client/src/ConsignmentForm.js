@@ -138,7 +138,7 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
       const text = await res.text();
       let data;
       try { data = JSON.parse(text); } catch { throw new Error('Backend not hit (HTML returned)'); }
-      if (!res.ok) throw new Error(data.error || 'Unable to save consignment.');
+      if (!res.ok) throw new Error((data.error || 'Unable to save consignment.') + (data.detail ? ': ' + data.detail : ''));
       if (onDirty) onDirty(false);
       resetForm();
       onConsignmentAdded();

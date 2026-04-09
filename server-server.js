@@ -512,7 +512,7 @@ app.post('/consignment', async (req, res) => {
     res.json(row);
   } catch (err) {
     console.error("CONS ERROR:", err);
-    res.status(500).json({ error: 'Failed to add consignment' });
+    res.status(500).json({ error: 'Failed to add consignment', detail: err.message });
   }
 });
 

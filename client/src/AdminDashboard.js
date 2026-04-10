@@ -25,6 +25,7 @@ const DROPDOWN_CATEGORIES = [
   { key: 'purpose', label: 'Purpose' },
   { key: 'person_to_meet', label: 'Person to Meet' },
   { key: 'security_name', label: 'Security Name' },
+  { key: 'coming_from', label: 'Coming From (Locations)' },
 ];
 
 export default function AdminDashboard({ user, token }) {

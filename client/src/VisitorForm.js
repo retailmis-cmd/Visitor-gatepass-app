@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import {
   Box, Card, CardHeader, CardContent, TextField, MenuItem,
-  Button, Stack, Avatar,
+  Button, Stack, Avatar, Autocomplete,
 } from '@mui/material';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -42,6 +42,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
   const [availableLocations, setAvailableLocations] = useState([]);
   const [purposeOptions, setPurposeOptions] = useState([]);
   const [personOptions, setPersonOptions] = useState([]);
+  const [comingFromOptions, setComingFromOptions] = useState([]);
   const webcamRef = useRef(null);
 
   const authHeaders = token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } : { 'Content-Type': 'application/json' };
@@ -68,10 +69,11 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [idRes, purposeRes, personRes] = await Promise.all([
+        const [idRes, purposeRes, personRes, comingFromRes] = await Promise.all([
           fetch(`${apiUrl}/visitors/next-id`, { headers: authHeaders }),
           fetch(`${apiUrl}/dropdown-options?category=purpose`, { headers: authHeaders }),
           fetch(`${apiUrl}/dropdown-options?category=person_to_meet`, { headers: authHeaders }),
+          fetch(`${apiUrl}/dropdown-options?category=coming_from`, { headers: authHeaders }),
         ]);
         const idData = await idRes.json();
         if (idData.visitorId) setVisitorIdPreview(idData.visitorId);
@@ -79,6 +81,8 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
         if (Array.isArray(purpData)) setPurposeOptions(purpData.map((o) => o.value));
         const personData = await personRes.json();
         if (Array.isArray(personData)) setPersonOptions(personData.map((o) => o.value));
+        const cfData = await comingFromRes.json();
+        if (Array.isArray(cfData)) setComingFromOptions(cfData.map((o) => o.value.toUpperCase()));
       } catch { /* silently fail */ }
     };
     fetchData();
@@ -216,15 +220,27 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
 
             {/* ROW 3: Coming From and Company */}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                label="Coming From"
-                value={coming_from}
-                onChange={(e) => { setComingFrom(e.target.value.toUpperCase()); markDirty(); }}
-                placeholder="ENTER LOCATION"
-                fullWidth
-                required
-                inputProps={{ style: { textTransform: 'uppercase' } }}
-              />
+              {comingFromOptions.length > 0 ? (
+                <Autocomplete
+                  options={comingFromOptions}
+                  value={coming_from || null}
+                  onChange={(e, newValue) => { setComingFrom(newValue || ''); markDirty(); }}
+                  fullWidth
+                  renderInput={(params) => (
+                    <TextField {...params} label="Coming From" placeholder="SELECT LOCATION" required />
+                  )}
+                />
+              ) : (
+                <TextField
+                  label="Coming From"
+                  value={coming_from}
+                  onChange={(e) => { setComingFrom(e.target.value.toUpperCase()); markDirty(); }}
+                  placeholder="ENTER LOCATION"
+                  fullWidth
+                  required
+                  inputProps={{ style: { textTransform: 'uppercase' } }}
+                />
+              )}
               <TextField
                 label="Company"
                 value={company}

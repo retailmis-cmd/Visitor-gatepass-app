@@ -10,37 +10,37 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 const toLocalDate = (d) => { const dt = new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; };
 const getToday = () => toLocalDate(new Date());
 
-export default function ConsignmentList({ apiUrl, refresh, token }) {
-  const [consignments, setConsignments] = useState([]);
+export default function GatepassList({ apiUrl, refresh, token }) {
+  const [Gatepasses, setGatepasses] = useState([]);
   const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getToday());
   const [loading, setLoading] = useState(false);
-  const [selectedConsignment, setSelectedConsignment] = useState(null);
+  const [selectedGatepass, setSelectedGatepass] = useState(null);
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-  const fetchConsignments = async () => {
+  const fetchGatepasses = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiUrl}/consignments`, { headers: authHeaders });
-      if (!res.ok) throw new Error('Failed to fetch consignments');
+      const res = await fetch(`${apiUrl}/Gatepasses`, { headers: authHeaders });
+      if (!res.ok) throw new Error('Failed to fetch Gatepasses');
       const data = await res.json();
-      setConsignments(Array.isArray(data) ? data : []);
+      setGatepasses(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error fetching consignments:', err);
-      alert('Unable to load consignments.');
+      console.error('Error fetching Gatepasses:', err);
+      alert('Unable to load Gatepasses.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchConsignments(); }, [refresh, apiUrl]);
+  useEffect(() => { fetchGatepasses(); }, [refresh, apiUrl]);
 
-  const deleteConsignment = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this consignment?')) return;
+  const deleteGatepass = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this Gatepass?')) return;
 
     try {
-      const res = await fetch(`${apiUrl}/consignments/${id}`, {
+      const res = await fetch(`${apiUrl}/Gatepasses/${id}`, {
         method: 'DELETE',
         headers: authHeaders,
       });
@@ -55,23 +55,23 @@ export default function ConsignmentList({ apiUrl, refresh, token }) {
 
       if (!res.ok) throw new Error(data.error || 'Failed to delete');
       
-      alert('✅ Consignment deleted successfully');
-      setSelectedConsignment(null);
-      fetchConsignments();
+      alert('✅ Gatepass deleted successfully');
+      setSelectedGatepass(null);
+      fetchGatepasses();
     } catch (err) {
       console.error('Delete error:', err);
       alert(`Error: ${err.message}`);
     }
   };
 
-  const filtered = consignments.filter((c) => {
+  const filtered = Gatepasses.filter((c) => {
     const cDate = c.date ? toLocalDate(c.date) : '';
     return (!startDate || cDate >= startDate) && (!endDate || cDate <= endDate);
   });
 
   return (
     <Card>
-      <CardHeader title="Consignment List" subheader={`Showing ${filtered.length} record${filtered.length === 1 ? '' : 's'}`} />
+      <CardHeader title="Gatepass List" subheader={`Showing ${filtered.length} record${filtered.length === 1 ? '' : 's'}`} />
       <CardContent>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
           <TextField label="From" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: { xs: '100%', sm: 180 } }} />
@@ -92,7 +92,7 @@ export default function ConsignmentList({ apiUrl, refresh, token }) {
                 </TableHead>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} align="center">No consignments found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} align="center">No Gatepasses found.</TableCell></TableRow>
                   ) : filtered.map((c) => (
                     <TableRow key={c.id} hover>
                       <TableCell>{c.date || '-'}</TableCell>
@@ -104,7 +104,7 @@ export default function ConsignmentList({ apiUrl, refresh, token }) {
                           size="small"
                           color="primary"
                           title="View Details"
-                          onClick={() => setSelectedConsignment(c)}
+                          onClick={() => setSelectedGatepass(c)}
                         >
                           <VisibilityIcon />
                         </IconButton>
@@ -112,7 +112,7 @@ export default function ConsignmentList({ apiUrl, refresh, token }) {
                           size="small"
                           color="error"
                           title="Delete"
-                          onClick={() => deleteConsignment(c.id)}
+                          onClick={() => deleteGatepass(c.id)}
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -124,7 +124,7 @@ export default function ConsignmentList({ apiUrl, refresh, token }) {
             </TableContainer>
 
             {/* Detail View */}
-            {selectedConsignment && (
+            {selectedGatepass && (
               <Box
                 sx={{
                   mt: 3,
@@ -134,33 +134,33 @@ export default function ConsignmentList({ apiUrl, refresh, token }) {
                   border: '1px solid #ddd',
                 }}
               >
-                <h3>📋 Consignment Details</h3>
+                <h3>📋 Gatepass Details</h3>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                  <Box><strong>Date:</strong> {selectedConsignment.date || '-'}</Box>
-                  <Box><strong>GP Number:</strong> {selectedConsignment.gp_number || '-'}</Box>
-                  <Box><strong>Type:</strong> {selectedConsignment.type || '-'}</Box>
-                  <Box><strong>Document Number:</strong> {selectedConsignment.document_number || '-'}</Box>
-                  <Box><strong>Document Type:</strong> {selectedConsignment.document_type || '-'}</Box>
-                  <Box><strong>In-Time:</strong> {selectedConsignment.in_time || '-'}</Box>
-                  <Box><strong>Vehicle Number:</strong> {selectedConsignment.vehicle_number || '-'}</Box>
-                  <Box><strong>Driver Contact:</strong> {selectedConsignment.driver_contact || '-'}</Box>
-                  <Box><strong>QTY:</strong> {selectedConsignment.qty || '-'}</Box>
-                  <Box><strong>Package Type:</strong> {selectedConsignment.package_type || '-'}</Box>
-                  <Box><strong>Comment:</strong> {selectedConsignment.comment || '-'}</Box>
-                  <Box><strong>Security Name:</strong> {selectedConsignment.security_name || '-'}</Box>
+                  <Box><strong>Date:</strong> {selectedGatepass.date || '-'}</Box>
+                  <Box><strong>GP Number:</strong> {selectedGatepass.gp_number || '-'}</Box>
+                  <Box><strong>Type:</strong> {selectedGatepass.type || '-'}</Box>
+                  <Box><strong>Document Number:</strong> {selectedGatepass.document_number || '-'}</Box>
+                  <Box><strong>Document Type:</strong> {selectedGatepass.document_type || '-'}</Box>
+                  <Box><strong>In-Time:</strong> {selectedGatepass.in_time || '-'}</Box>
+                  <Box><strong>Vehicle Number:</strong> {selectedGatepass.vehicle_number || '-'}</Box>
+                  <Box><strong>Driver Contact:</strong> {selectedGatepass.driver_contact || '-'}</Box>
+                  <Box><strong>QTY:</strong> {selectedGatepass.qty || '-'}</Box>
+                  <Box><strong>Package Type:</strong> {selectedGatepass.package_type || '-'}</Box>
+                  <Box><strong>Comment:</strong> {selectedGatepass.comment || '-'}</Box>
+                  <Box><strong>Security Name:</strong> {selectedGatepass.security_name || '-'}</Box>
                 </Box>
-                {selectedConsignment.photo && (
+                {selectedGatepass.photo && (
                   <Box sx={{ mt: 2 }}>
                     <strong>Photo:</strong>
                     <img
-                      src={selectedConsignment.photo}
-                      alt="Consignment"
+                      src={selectedGatepass.photo}
+                      alt="Gatepass"
                       style={{ maxWidth: '200px', marginTop: '10px', borderRadius: '8px' }}
                     />
                   </Box>
                 )}
                 <button
-                  onClick={() => setSelectedConsignment(null)}
+                  onClick={() => setSelectedGatepass(null)}
                   style={{
                     marginTop: '15px',
                     padding: '8px 16px',

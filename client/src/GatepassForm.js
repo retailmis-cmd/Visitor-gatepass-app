@@ -26,7 +26,7 @@ const uploadToCloudinary = async (base64Image) => {
   return data.secure_url;
 };
 
-export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, user, onDirty }) {
+export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onDirty }) {
   const [date, setDate] = useState(getToday());
   const [gpNumberPreview, setGpNumberPreview] = useState('Loading...');
   const [type, setType] = useState('');
@@ -70,7 +70,7 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
     const fetchData = async () => {
       try {
         const [gpRes, secRes] = await Promise.all([
-          fetch(`${apiUrl}/consignments/next-gp`, { headers: authHeaders }),
+          fetch(`${apiUrl}/Gatepasses/next-gp`, { headers: authHeaders }),
           fetch(`${apiUrl}/dropdown-options?category=security_name`, { headers: authHeaders }),
         ]);
         const gpData = await gpRes.json();
@@ -101,7 +101,7 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
     setPhoto('');
     setSecurityName('');
     setLocation(user?.assignedLocations?.length === 1 ? user.assignedLocations[0] : '');
-    fetch(`${apiUrl}/consignments/next-gp`, { headers: authHeaders })
+    fetch(`${apiUrl}/Gatepasses/next-gp`, { headers: authHeaders })
       .then((r) => r.json())
       .then((d) => { if (d.gpNumber) setGpNumberPreview(d.gpNumber); })
       .catch(() => { setGpNumberPreview('Auto'); });
@@ -126,7 +126,7 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
     setSaving(true);
     try {
       const photoUrl = await uploadToCloudinary(photo);
-      const res = await fetch(`${apiUrl}/consignment`, {
+      const res = await fetch(`${apiUrl}/Gatepass`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
@@ -138,18 +138,18 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
       const text = await res.text();
       let data;
       try { data = JSON.parse(text); } catch { throw new Error('Backend not hit (HTML returned)'); }
-      if (!res.ok) throw new Error((data.error || 'Unable to save consignment.') + (data.detail ? ': ' + data.detail : ''));
+      if (!res.ok) throw new Error((data.error || 'Unable to save Gatepass.') + (data.detail ? ': ' + data.detail : ''));
       if (onDirty) onDirty(false);
       resetForm();
-      onConsignmentAdded();
-      alert(`✅ Consignment added successfully! GP: ${data.gp_number}`);
+      onGatepassAdded();
+      alert(`✅ Gatepass added successfully! GP: ${data.gp_number}`);
     } catch (err) { alert(err.message); }
     finally { setSaving(false); }
   };
 
   return (
     <Card>
-      <CardHeader title="Add Consignment" subheader="Capture consignment details and mandatory photo" />
+      <CardHeader title="Add Gatepass" subheader="Capture Gatepass details and mandatory photo" />
       <CardContent>
         <Box component="form" onSubmit={submit}>
           <Stack spacing={3}>
@@ -326,7 +326,7 @@ export default function ConsignmentForm({ apiUrl, onConsignmentAdded, token, use
 
             {/* Submit Button */}
             <Button type="submit" variant="contained" size="large" disabled={saving} sx={{ py: 1.5, fontWeight: 700, fontSize: '16px', backgroundColor: '#ff8a00' }}>
-              {saving ? '🔄 Saving…' : '✅ SAVE CONSIGNMENT'}
+              {saving ? '🔄 Saving…' : '✅ SAVE Gatepass'}
             </Button>
           </Stack>
         </Box>

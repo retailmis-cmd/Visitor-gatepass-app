@@ -19,8 +19,8 @@ import SignupPage from './SignupPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import VisitorForm from './VisitorForm';
 import VisitorList from './VisitorList';
-import ConsignmentForm from './ConsignmentForm';
-import ConsignmentList from './ConsignmentList';
+import GatepassForm from './GatepassForm';
+import GatepassList from './GatepassList';
 import ReportDownload from './ReportDownload';
 import AdminDashboard from './AdminDashboard';
 import './App.css';
@@ -52,7 +52,7 @@ const theme = createTheme({
 function App() {
   const [currentPage, setCurrentPage] = useState('visitor-form');
   const [refreshVisitors, setRefreshVisitors] = useState(0);
-  const [refreshConsignments, setRefreshConsignments] = useState(0);
+  const [refreshGatepasses, setRefreshGatepasses] = useState(0);
   const [authMode, setAuthMode] = useState('login');
   const [formDirty, setFormDirty] = useState(false);
 
@@ -217,7 +217,7 @@ function App() {
                   Visitor Manager
                 </Typography>
                 <Typography variant="body2" align="center" sx={{ opacity: 0.6 }}>
-                  Sign in to manage visitors and consignments.
+                  Sign in to manage visitors and Gatepasses.
                 </Typography>
               </Stack>
               <LoginPage
@@ -245,8 +245,8 @@ function App() {
   const userNavItems = [
     { key: 'visitor-form', label: 'Add Visitor', icon: <AddBoxIcon /> },
     { key: 'visitor-list', label: 'Visitor List', icon: <GroupIcon /> },
-    { key: 'consignment-form', label: 'Add Consignment', icon: <Inventory2Icon /> },
-    { key: 'consignment-list', label: 'Consignment List', icon: <PersonIcon /> },
+    { key: 'gatepass-form', label: 'Add Gatepass', icon: <Inventory2Icon /> },
+    { key: 'gatepass-list', label: 'Gatepass List', icon: <PersonIcon /> },
     { key: 'reports', label: 'Download Reports', icon: <DownloadIcon /> },
   ];
 
@@ -254,8 +254,8 @@ function App() {
     { key: 'admin', label: 'Admin Dashboard', icon: <AdminPanelSettingsIcon /> },
     { key: 'visitor-form', label: 'Add Visitor', icon: <AddBoxIcon /> },
     { key: 'visitor-list', label: 'Visitor List', icon: <GroupIcon /> },
-    { key: 'consignment-form', label: 'Add Consignment', icon: <Inventory2Icon /> },
-    { key: 'consignment-list', label: 'Consignment List', icon: <PersonIcon /> },
+    { key: 'gatepass-form', label: 'Add Gatepass', icon: <Inventory2Icon /> },
+    { key: 'gatepass-list', label: 'Gatepass List', icon: <PersonIcon /> },
     { key: 'reports', label: 'Download Reports', icon: <DownloadIcon /> },
   ];
 
@@ -318,7 +318,7 @@ function App() {
             <Toolbar sx={{ justifyContent: 'space-between' }}>
               <Box sx={{ textAlign: 'center', flex: 1 }}>
                 <Typography variant="h6" fontWeight={700}>
-                  Visitor & Consignment Dashboard
+                  Visitor & Gatepass Dashboard
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.6 }}>
                   {isAdmin ? 'Admin — Full Access' : `Locations: ${user.assignedLocations?.join(', ') || 'None assigned'}`}
@@ -342,11 +342,11 @@ function App() {
               {currentPage === 'visitor-list' && (
                 <VisitorList apiUrl={API_URL} token={token} user={user} refresh={refreshVisitors} />
               )}
-              {currentPage === 'consignment-form' && (
-                <ConsignmentForm apiUrl={API_URL} token={token} user={user} onConsignmentAdded={() => setRefreshConsignments((p) => p + 1)} onDirty={setFormDirty} />
+              {currentPage === 'gatepass-form' && (
+                <GatepassForm apiUrl={API_URL} token={token} user={user} onGatepassAdded={() => setRefreshGatepasses((p) => p + 1)} onDirty={setFormDirty} />
               )}
-              {currentPage === 'consignment-list' && (
-                <ConsignmentList apiUrl={API_URL} token={token} refresh={refreshConsignments} />
+              {currentPage === 'gatepass-list' && (
+                <GatepassList apiUrl={API_URL} token={token} refresh={refreshGatepasses} />
               )}
               {currentPage === 'reports' && (
                 <ReportDownload apiUrl={API_URL} token={token} />

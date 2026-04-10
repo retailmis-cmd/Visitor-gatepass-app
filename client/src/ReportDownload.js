@@ -286,11 +286,11 @@ export default function ReportDownload({ apiUrl, token }) {
             variant="contained"
             startIcon={<DownloadIcon />}
             sx={{ backgroundColor: '#ff8a00', '&:hover': { backgroundColor: '#e67e00' } }}
-            onClick={() => downloadReport('consignments')}
+            onClick={() => downloadReport('Gatepasses')}
             disabled={loading}
             fullWidth
           >
-            {loading ? '⏳ Downloading...' : '📥 Download Consignments'}
+            {loading ? '⏳ Downloading...' : '📥 Download Gatepasses'}
           </Button>
         </Box>
       </CardContent>

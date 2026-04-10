@@ -71,7 +71,9 @@ function App() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error(`Server error (${response.status}): ${text.slice(0, 120)}`); }
 
       if (!response.ok) {
         alert(data.error || 'Login failed');

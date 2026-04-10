@@ -5,12 +5,16 @@
   "framework": null,
   "functions": {
     "api/index.js": {
-      "maxDuration": 30,
-      "includeFiles": "build/**"
+      "maxDuration": 30
     }
   },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index.js" }
+  "routes": [
+    {
+      "src": "/(health|login|signup|visitor|visitors|consignment|consignments|admin|dropdown-options|reports|locations|api)(.*)",
+      "dest": "/api/index.js"
+    },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
 

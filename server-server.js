@@ -742,19 +742,14 @@ app.get('/reports/visitors', async (req, res) => {
       [startDate, endDate]
     );
 
-    // Convert photos to base64 if they're buffers
+    // Convert photos: pass Cloudinary URLs as-is, convert raw buffers only
     const rows = result.rows.map(row => {
       if (row.photo) {
         try {
-          // If photo is a Buffer, convert to base64
           if (Buffer.isBuffer(row.photo)) {
-            console.log(`Converting Buffer photo of size: ${row.photo.length}`);
             row.photo = 'data:image/jpeg;base64,' + row.photo.toString('base64');
           }
-          // If it's already a string, check if it needs the prefix
-          else if (typeof row.photo === 'string' && !row.photo.includes('data:image')) {
-            row.photo = 'data:image/jpeg;base64,' + row.photo;
-          }
+          // If it's already a URL or data URI, leave it unchanged
         } catch (photoErr) {
           console.warn(`Failed to convert photo for visitor ${row.id}:`, photoErr.message);
           row.photo = null;
@@ -792,19 +787,14 @@ app.get('/reports/consignments', async (req, res) => {
       [startDate, endDate]
     );
 
-    // Convert photos to base64 if they're buffers
+    // Convert photos: pass Cloudinary URLs as-is, convert raw buffers only
     const rows = result.rows.map(row => {
       if (row.photo) {
         try {
-          // If photo is a Buffer, convert to base64
           if (Buffer.isBuffer(row.photo)) {
-            console.log(`Converting Buffer photo of size: ${row.photo.length}`);
             row.photo = 'data:image/jpeg;base64,' + row.photo.toString('base64');
           }
-          // If it's already a string, check if it needs the prefix
-          else if (typeof row.photo === 'string' && !row.photo.includes('data:image')) {
-            row.photo = 'data:image/jpeg;base64,' + row.photo;
-          }
+          // If it's already a URL or data URI, leave it unchanged
         } catch (photoErr) {
           console.warn(`Failed to convert photo for consignment ${row.id}:`, photoErr.message);
           row.photo = null;

@@ -135,10 +135,29 @@ export default function ReportDownload({ apiUrl, token }) {
               if (photoIndex !== -1) {
                 let base64Data = row.photo;
 
-                // Remove data URL prefix if present
-                if (base64Data.includes(',')) {
+                // If it's a URL (Cloudinary), fetch and convert to base64
+                if (base64Data.startsWith('http')) {
+                  try {
+                    const imgRes = await fetch(base64Data);
+                    const imgBlob = await imgRes.blob();
+                    base64Data = await new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        const result = reader.result;
+                        resolve(result.includes(',') ? result.split(',')[1] : result);
+                      };
+                      reader.readAsDataURL(imgBlob);
+                    });
+                  } catch (fetchErr) {
+                    console.warn('Failed to fetch photo URL:', fetchErr.message);
+                    base64Data = null;
+                  }
+                } else if (base64Data.includes(',')) {
+                  // Remove data URL prefix if present
                   base64Data = base64Data.split(',')[1];
                 }
+
+                if (!base64Data) throw new Error('No base64 data');
 
                 console.log(`🖼️ Processing photo ${photoCount + 1}, size: ${base64Data.length}`);
 

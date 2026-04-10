@@ -246,7 +246,7 @@ export default function ReportDownload({ apiUrl, token }) {
       <CardHeader 
         title="📊 Download Reports" 
         subheader="Select date range and download data with photos"
-        sx={{ backgroundColor: '#0c1530', borderBottom: '2px solid #ff8a00' }}
+        sx={{ borderBottom: '2px solid rgba(255, 138, 0, 0.2)' }}
       />
       <CardContent sx={{ pt: 3 }}>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -286,7 +286,7 @@ export default function ReportDownload({ apiUrl, token }) {
             variant="contained"
             startIcon={<DownloadIcon />}
             sx={{ backgroundColor: '#ff8a00', '&:hover': { backgroundColor: '#e67e00' } }}
-            onClick={() => downloadReport('Gatepasses')}
+            onClick={() => downloadReport('consignments')}
             disabled={loading}
             fullWidth
           >

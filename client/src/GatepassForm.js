@@ -70,7 +70,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     const fetchData = async () => {
       try {
         const [gpRes, secRes] = await Promise.all([
-          fetch(`${apiUrl}/Gatepasses/next-gp`, { headers: authHeaders }),
+          fetch(`${apiUrl}/consignments/next-gp`, { headers: authHeaders }),
           fetch(`${apiUrl}/dropdown-options?category=security_name`, { headers: authHeaders }),
         ]);
         const gpData = await gpRes.json();
@@ -101,7 +101,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     setPhoto('');
     setSecurityName('');
     setLocation(user?.assignedLocations?.length === 1 ? user.assignedLocations[0] : '');
-    fetch(`${apiUrl}/Gatepasses/next-gp`, { headers: authHeaders })
+    fetch(`${apiUrl}/consignments/next-gp`, { headers: authHeaders })
       .then((r) => r.json())
       .then((d) => { if (d.gpNumber) setGpNumberPreview(d.gpNumber); })
       .catch(() => { setGpNumberPreview('Auto'); });
@@ -126,7 +126,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     setSaving(true);
     try {
       const photoUrl = await uploadToCloudinary(photo);
-      const res = await fetch(`${apiUrl}/Gatepass`, {
+      const res = await fetch(`${apiUrl}/consignment`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({

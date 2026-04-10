@@ -22,7 +22,7 @@ export default function GatepassList({ apiUrl, refresh, token }) {
   const fetchGatepasses = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiUrl}/Gatepasses`, { headers: authHeaders });
+      const res = await fetch(`${apiUrl}/consignments`, { headers: authHeaders });
       if (!res.ok) throw new Error('Failed to fetch Gatepasses');
       const data = await res.json();
       setGatepasses(Array.isArray(data) ? data : []);
@@ -40,7 +40,7 @@ export default function GatepassList({ apiUrl, refresh, token }) {
     if (!window.confirm('Are you sure you want to delete this Gatepass?')) return;
 
     try {
-      const res = await fetch(`${apiUrl}/Gatepasses/${id}`, {
+      const res = await fetch(`${apiUrl}/consignments/${id}`, {
         method: 'DELETE',
         headers: authHeaders,
       });

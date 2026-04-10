@@ -108,10 +108,10 @@ export default function ForgotPasswordPage({ onSendOtp, onResetPassword, onBackT
           <Avatar sx={{ bgcolor: '#ff8a00', width: 56, height: 56 }}>
             <LockResetIcon sx={{ fontSize: 32 }} />
           </Avatar>
-          <Typography variant="h5" fontWeight={700} sx={{ color: '#fff' }}>
+          <Typography variant="h5" fontWeight={700}>
             Reset Password
           </Typography>
-          <Typography variant="body2" align="center" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          <Typography variant="body2" align="center" sx={{ opacity: 0.6 }}>
             {step === 'email' && 'Enter your email to receive an OTP'}
             {step === 'otp' && 'Enter the 6-digit OTP sent to your email'}
             {step === 'password' && 'Create a new password'}
@@ -145,7 +145,7 @@ export default function ForgotPasswordPage({ onSendOtp, onResetPassword, onBackT
                 {loading ? 'Sending OTP...' : 'Send OTP'}
               </Button>
 
-              <Typography variant="body2" align="center" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+              <Typography variant="body2" align="center" sx={{ opacity: 0.6 }}>
                 <Link
                   component="button"
                   variant="body2"
@@ -173,7 +173,7 @@ export default function ForgotPasswordPage({ onSendOtp, onResetPassword, onBackT
                 inputProps={{ maxLength: 6 }}
               />
 
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+              <Typography variant="body2" sx={{ opacity: 0.6 }}>
                 Enter the 6-digit OTP sent to {identifier}
               </Typography>
 

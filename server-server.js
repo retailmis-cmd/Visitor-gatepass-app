@@ -177,7 +177,7 @@ app.post('/login', async (req, res) => {
 // ================= PASSWORD RESET =================
 
 // SEND OTP
-app.post('/api/send-otp', async (req, res) => {
+app.post('/auth/send-otp', async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -221,7 +221,7 @@ app.post('/api/send-otp', async (req, res) => {
 });
 
 // VERIFY OTP
-app.post('/api/verify-otp', (req, res) => {
+app.post('/auth/verify-otp', (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -263,7 +263,7 @@ app.post('/api/verify-otp', (req, res) => {
 });
 
 // RESET PASSWORD
-app.post('/api/reset-password', async (req, res) => {
+app.post('/auth/reset-password', async (req, res) => {
   try {
     const { email, newPassword } = req.body;
 

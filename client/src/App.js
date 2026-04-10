@@ -131,7 +131,7 @@ function App() {
   // ==================== SEND OTP ====================
   const handleSendOtp = async (email) => {
     try {
-      const response = await fetch(`${API_URL}/api/send-otp`, {
+      const response = await fetch(`${API_URL}/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -157,7 +157,7 @@ function App() {
   // ==================== RESET PASSWORD ====================
   const handleResetPassword = async ({ identifier, otp, newPassword }) => {
     try {
-      const verifyResponse = await fetch(`${API_URL}/api/verify-otp`, {
+      const verifyResponse = await fetch(`${API_URL}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: identifier.toLowerCase(), otp }),
@@ -169,7 +169,7 @@ function App() {
         return false;
       }
 
-      const resetResponse = await fetch(`${API_URL}/api/reset-password`, {
+      const resetResponse = await fetch(`${API_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: identifier.toLowerCase(), newPassword }),

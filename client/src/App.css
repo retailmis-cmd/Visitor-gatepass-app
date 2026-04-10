@@ -128,6 +128,19 @@ body {
   font-family: 'Roboto Condensed', Arial, sans-serif;
 }
 
+/* Date/time picker icons — force dark on light background */
+input[type="date"],
+input[type="time"] {
+  color-scheme: light;
+  color: #1a1a2e;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.1) brightness(0.3);
+  cursor: pointer;
+}
+
 .MuiInputLabel-root,
 .MuiFormLabel-root {
   color: #888aaa !important;

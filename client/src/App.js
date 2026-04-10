@@ -32,10 +32,10 @@ const drawerWidth = 260;
 
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: { main: '#ff8a00' },
-    background: { default: '#060d1f', paper: '#0c1530' },
-    text: { primary: '#ffffff', secondary: '#ffffff' },
+    background: { default: '#f0f2f8', paper: '#ffffff' },
+    text: { primary: '#1a1a2e', secondary: '#555770' },
   },
   typography: {
     fontFamily: "'Roboto Condensed', Arial, sans-serif",
@@ -43,7 +43,7 @@ const theme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
-        body: { color: '#ffffff' },
+        body: { color: '#1a1a2e' },
       },
     },
   },
@@ -277,7 +277,7 @@ function App() {
             <Typography variant="h6" fontWeight={700} sx={{ color: '#ff8a00' }}>
               Visitor Manager
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.6 }}>
+            <Typography variant="body2" sx={{ opacity: 0.7, color: '#1a1a2e' }}>
               {user.name}
             </Typography>
             <Chip
@@ -285,8 +285,8 @@ function App() {
               size="small"
               sx={{
                 mt: 0.5,
-                bgcolor: isAdmin ? '#ff8a00' : '#1a3a5c',
-                color: '#fff',
+                bgcolor: isAdmin ? '#ff8a00' : '#e8eaf6',
+                color: isAdmin ? '#fff' : '#3949ab',
                 fontWeight: 700,
                 fontSize: 10,
               }}

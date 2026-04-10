@@ -2,20 +2,23 @@ import React, { useEffect, useState } from 'react';
 import {
   Card, CardHeader, CardContent, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Typography, IconButton, Box,
-  Stack, TextField,
+  Stack, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Button,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const toLocalDate = (d) => { const dt = new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; };
 const getToday = () => toLocalDate(new Date());
 
-export default function GatepassList({ apiUrl, refresh, token }) {
+export default function GatepassList({ apiUrl, refresh, token, user }) {
   const [Gatepasses, setGatepasses] = useState([]);
   const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getToday());
   const [loading, setLoading] = useState(false);
   const [selectedGatepass, setSelectedGatepass] = useState(null);
+  const [editingGatepass, setEditingGatepass] = useState(null);
+  const [editFields, setEditFields] = useState({});
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -64,6 +67,38 @@ export default function GatepassList({ apiUrl, refresh, token }) {
     }
   };
 
+  const openEdit = (c) => {
+    setEditingGatepass(c);
+    setEditFields({
+      date: c.date ? toLocalDate(c.date) : '',
+      type: c.type || '',
+      document_number: c.document_number || '',
+      document_type: c.document_type || '',
+      in_time: c.in_time || '',
+      vehicle_number: c.vehicle_number || '',
+      driver_contact: c.driver_contact || '',
+      qty: c.qty || '',
+      package_type: c.package_type || '',
+      comment: c.comment || '',
+      security_name: c.security_name || '',
+      location: c.location || '',
+    });
+  };
+
+  const saveEdit = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/consignments/${editingGatepass.id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFields),
+      });
+      const r = await res.json();
+      if (!res.ok) throw new Error(r.error || 'Update failed');
+      setGatepasses((prev) => prev.map((c) => c.id === editingGatepass.id ? { ...c, ...editFields } : c));
+      setEditingGatepass(null);
+    } catch (err) { alert(err.message); }
+  };
+
   const filtered = Gatepasses.filter((c) => {
     const cDate = c.date ? toLocalDate(c.date) : '';
     return (!startDate || cDate >= startDate) && (!endDate || cDate <= endDate);
@@ -108,14 +143,26 @@ export default function GatepassList({ apiUrl, refresh, token }) {
                         >
                           <VisibilityIcon />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          title="Delete"
-                          onClick={() => deleteGatepass(c.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
+                        {user?.role === 'admin' && (
+                          <IconButton
+                            size="small"
+                            title="Edit"
+                            onClick={() => openEdit(c)}
+                            sx={{ color: '#1976d2' }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        )}
+                        {user?.role === 'admin' && (
+                          <IconButton
+                            size="small"
+                            color="error"
+                            title="Delete"
+                            onClick={() => deleteGatepass(c.id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -178,6 +225,51 @@ export default function GatepassList({ apiUrl, refresh, token }) {
           </>
         )}
       </CardContent>
+      {/* Edit Gatepass Dialog */}
+      <Dialog open={Boolean(editingGatepass)} onClose={() => setEditingGatepass(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit Gatepass</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} mt={1}>
+            <Stack direction="row" spacing={2}>
+              <TextField label="Date" type="date" value={editFields.date || ''} onChange={(e) => setEditFields({ ...editFields, date: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
+              <TextField label="Type" value={editFields.type || ''} onChange={(e) => setEditFields({ ...editFields, type: e.target.value })} select fullWidth>
+                <MenuItem value="INWARD">Inward</MenuItem>
+                <MenuItem value="OUTWARD">Outward</MenuItem>
+              </TextField>
+            </Stack>
+            <Stack direction="row" spacing={2}>
+              <TextField label="Document Number" value={editFields.document_number || ''} onChange={(e) => setEditFields({ ...editFields, document_number: e.target.value.toUpperCase() })} fullWidth />
+              <TextField label="Document Type" value={editFields.document_type || ''} onChange={(e) => setEditFields({ ...editFields, document_type: e.target.value })} select fullWidth>
+                <MenuItem value="DC">DC</MenuItem>
+                <MenuItem value="Tax invoice">Tax invoice</MenuItem>
+                <MenuItem value="LR">LR</MenuItem>
+                <MenuItem value="Manifest">Manifest</MenuItem>
+              </TextField>
+            </Stack>
+            <TextField label="In Time" type="time" value={editFields.in_time || ''} onChange={(e) => setEditFields({ ...editFields, in_time: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
+            <Stack direction="row" spacing={2}>
+              <TextField label="Vehicle Number" value={editFields.vehicle_number || ''} onChange={(e) => setEditFields({ ...editFields, vehicle_number: e.target.value.toUpperCase() })} fullWidth />
+              <TextField label="Driver Contact" value={editFields.driver_contact || ''} onChange={(e) => setEditFields({ ...editFields, driver_contact: e.target.value })} fullWidth />
+            </Stack>
+            <Stack direction="row" spacing={2}>
+              <TextField label="Qty" type="number" value={editFields.qty || ''} onChange={(e) => setEditFields({ ...editFields, qty: e.target.value })} fullWidth />
+              <TextField label="Package Type" value={editFields.package_type || ''} onChange={(e) => setEditFields({ ...editFields, package_type: e.target.value })} select fullWidth>
+                <MenuItem value="Box">Box</MenuItem>
+                <MenuItem value="Bag">Bag</MenuItem>
+                <MenuItem value="Carton">Carton</MenuItem>
+                <MenuItem value="Pallet">Pallet</MenuItem>
+                <MenuItem value="Other">Other</MenuItem>
+              </TextField>
+            </Stack>
+            <TextField label="Comment" value={editFields.comment || ''} onChange={(e) => setEditFields({ ...editFields, comment: e.target.value })} fullWidth multiline rows={2} />
+            <TextField label="Security Name" value={editFields.security_name || ''} onChange={(e) => setEditFields({ ...editFields, security_name: e.target.value })} fullWidth />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditingGatepass(null)}>Cancel</Button>
+          <Button onClick={saveEdit} variant="contained" sx={{ bgcolor: '#ff8a00' }}>Save Changes</Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 }

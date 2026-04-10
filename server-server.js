@@ -391,7 +391,7 @@ app.get('/visitors', authenticate, async (req, res) => {
   }
 });
 
-app.delete('/visitors/:id', authenticate, async (req, res) => {
+app.delete('/visitors/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -407,6 +407,22 @@ app.delete('/visitors/:id', authenticate, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete visitor' });
+  }
+});
+
+app.put('/visitors/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, in_time, out_time, name, coming_from, company, location, phone_number, purpose, person_to_meet, scheduled } = req.body;
+    const result = await pool.query(
+      `UPDATE visitors SET date=$1, in_time=$2, out_time=$3, name=$4, coming_from=$5, company=$6, location=$7, phone_number=$8, purpose=$9, person_to_meet=$10, scheduled=$11 WHERE id=$12 RETURNING *`,
+      [date, in_time, out_time || null, name, coming_from, company, location, phone_number, purpose, person_to_meet, scheduled, id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Visitor not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update visitor' });
   }
 });
 
@@ -515,7 +531,7 @@ app.get('/consignments', authenticate, async (req, res) => {
   }
 });
 
-app.delete('/consignments/:id', authenticate, async (req, res) => {
+app.delete('/consignments/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -531,6 +547,22 @@ app.delete('/consignments/:id', authenticate, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete consignment' });
+  }
+});
+
+app.put('/consignments/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, type, document_number, document_type, in_time, vehicle_number, driver_contact, qty, package_type, comment, security_name, location } = req.body;
+    const result = await pool.query(
+      `UPDATE consignments SET date=$1, type=$2, document_number=$3, document_type=$4, in_time=$5, vehicle_number=$6, driver_contact=$7, qty=$8, package_type=$9, comment=$10, security_name=$11, location=$12 WHERE id=$13 RETURNING *`,
+      [date, type, document_number, document_type, in_time, vehicle_number, driver_contact, qty, package_type, comment, security_name, location, id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Consignment not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update consignment' });
   }
 });
 

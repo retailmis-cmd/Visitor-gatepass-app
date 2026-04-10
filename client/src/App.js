@@ -348,7 +348,7 @@ function App() {
                 <GatepassForm apiUrl={API_URL} token={token} user={user} onGatepassAdded={() => setRefreshGatepasses((p) => p + 1)} onDirty={setFormDirty} />
               )}
               {currentPage === 'gatepass-list' && (
-                <GatepassList apiUrl={API_URL} token={token} refresh={refreshGatepasses} />
+                <GatepassList apiUrl={API_URL} token={token} user={user} refresh={refreshGatepasses} />
               )}
               {currentPage === 'reports' && (
                 <ReportDownload apiUrl={API_URL} token={token} />

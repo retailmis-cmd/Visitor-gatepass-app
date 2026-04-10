@@ -125,34 +125,9 @@ app.get('/health', async (req, res) => {
 
 // ================= AUTH =================
 
-// SIGNUP
-app.post('/signup', async (req, res) => {
-  try {
-    const { name, email, password, phone_number } = req.body;
-
-    if (!name || !email || !password)
-      return res.status(400).json({ error: 'All fields required' });
-
-    const exists = await pool.query(
-      'SELECT id FROM users WHERE email=$1',
-      [email.toLowerCase()]
-    );
-
-    if (exists.rows.length)
-      return res.status(409).json({ error: 'User exists' });
-
-    const hash = await bcrypt.hash(password, 10);
-
-    const result = await pool.query(
-      'INSERT INTO users(name,email,password,phone_number) VALUES($1,$2,$3,$4) RETURNING id,name,email',
-      [name, email.toLowerCase(), hash, normalizePhone(phone_number)]
-    );
-
-    res.json({ user: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Signup failed' });
-  }
+// SIGNUP — disabled, accounts are created by admin only
+app.post('/signup', (req, res) => {
+  res.status(403).json({ error: 'Self-registration is disabled. Contact your administrator to create an account.' });
 });
 
 // LOGIN

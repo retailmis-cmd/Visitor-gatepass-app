@@ -77,21 +77,7 @@ export default function LoginPage({ onLogin, onSwitchMode, onForgotPassword }) {
           {loading ? 'Signing in...' : 'Sign in'}
         </Button>
         
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-          <Typography variant="body2">
-            New user?{' '}
-            <Link 
-              component="button" 
-              variant="body2" 
-              onClick={(e) => {
-                e.preventDefault();
-                onSwitchMode();
-              }}
-              sx={{ cursor: 'pointer', color: '#ff8a00', fontWeight: 600 }}
-            >
-              Create an account
-            </Link>
-          </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <Link 
             component="button" 
             variant="body2" 

@@ -222,33 +222,7 @@ function App() {
               </Stack>
               <LoginPage
                 onLogin={async (p) => handleLogin(p)}
-                onSwitchMode={() => setAuthMode('signup')}
                 onForgotPassword={() => setAuthMode('forgot')}
-              />
-            </Paper>
-          </Box>
-        )}
-
-        {authMode === 'signup' && (
-          <Box className="auth-root">
-            <Paper className="auth-card" elevation={0}>
-              <Stack spacing={2} alignItems="center" mb={3}>
-                <Avatar sx={{ bgcolor: '#ff8a00', width: 56, height: 56 }}>
-                  <PersonIcon sx={{ fontSize: 32 }} />
-                </Avatar>
-                <Typography variant="h4" fontWeight={700}>
-                  Visitor Manager
-                </Typography>
-                <Typography variant="body2" align="center" sx={{ opacity: 0.6 }}>
-                  Create a new account to get started.
-                </Typography>
-              </Stack>
-              <SignupPage
-                onSignup={(p) => {
-                  handleSignup(p).then((ok) => { if (ok) setAuthMode('login'); });
-                  return true;
-                }}
-                onSwitchMode={() => setAuthMode('login')}
               />
             </Paper>
           </Box>

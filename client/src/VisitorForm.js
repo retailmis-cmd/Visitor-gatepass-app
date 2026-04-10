@@ -220,7 +220,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
                 label="Coming From"
                 value={coming_from}
                 onChange={(e) => { setComingFrom(e.target.value.toUpperCase()); markDirty(); }}
-                placeholder="ENTER COMPANY/LOCATION"
+                placeholder="ENTER LOCATION"
                 fullWidth
                 required
                 inputProps={{ style: { textTransform: 'uppercase' } }}

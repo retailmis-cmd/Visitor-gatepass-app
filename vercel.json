@@ -8,25 +8,8 @@
       "maxDuration": 30
     }
   },
-  "routes": [
-    { "src": "/health", "dest": "/api/index.js" },
-    { "src": "/signup", "dest": "/api/index.js" },
-    { "src": "/login", "dest": "/api/index.js" },
-    { "src": "/visitor", "dest": "/api/index.js" },
-    { "src": "/visitors", "dest": "/api/index.js" },
-    { "src": "/visitors/(.*)", "dest": "/api/index.js" },
-    { "src": "/consignment", "dest": "/api/index.js" },
-    { "src": "/consignments", "dest": "/api/index.js" },
-    { "src": "/consignments/(.*)", "dest": "/api/index.js" },
-    { "src": "/admin/(.*)", "dest": "/api/index.js" },
-    { "src": "/dropdown-options", "dest": "/api/index.js" },
-    { "src": "/reports/(.*)", "dest": "/api/index.js" },
-    { "src": "/locations", "dest": "/api/index.js" },
-    { "src": "/forgot-password", "dest": "/api/index.js" },
-    { "src": "/reset-password", "dest": "/api/index.js" },
-    { "src": "/api/(.*)", "dest": "/api/index.js" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index.js" }
   ]
 }
 

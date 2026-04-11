@@ -44,6 +44,67 @@ const isPhone = (v) => /^\+?[0-9][0-9\-\s().]{5,}$/.test(v);
 // ================= OTP STORE =================
 const otpStore = {};
 
+// ================= DB MIGRATION =================
+// Auto-add phone_number column to dropdown_options if missing
+(async () => {
+  try {
+    await pool.query(`
+      ALTER TABLE dropdown_options
+      ADD COLUMN IF NOT EXISTS phone_number VARCHAR;
+    `);
+  } catch (err) {
+    console.error('Migration warning:', err.message);
+  }
+})();
+
+// ================= WHATSAPP =================
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
+const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID;
+
+const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personToMeet, purpose, location, inTime }) => {
+  if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_ID) {
+    console.log('WhatsApp not configured — skipping notification');
+    return;
+  }
+  // Normalize: strip non-digits, ensure 10-digit Indian numbers become 91XXXXXXXXXX
+  let phone = String(toPhone).replace(/\D/g, '');
+  if (phone.length === 10) phone = '91' + phone;
+
+  const message =
+    `Hello ${personToMeet},\n\n` +
+    `📋 *Visitor Arrival Notification*\n\n` +
+    `👤 *Name:* ${visitorName}\n` +
+    `🏢 *Company:* ${company}\n` +
+    `🎯 *Purpose:* ${purpose}\n` +
+    `📍 *Location:* ${location}\n` +
+    `🕐 *Time:* ${inTime}\n\n` +
+    `Please proceed to the reception to meet your visitor.`;
+
+  try {
+    const resp = await fetch(
+      `https://graph.facebook.com/v19.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: phone,
+          type: 'text',
+          text: { body: message },
+        }),
+      }
+    );
+    const data = await resp.json();
+    if (!resp.ok) console.error('WhatsApp API error:', data);
+    else console.log(`WhatsApp sent to ${phone}`);
+  } catch (err) {
+    console.error('WhatsApp send failed:', err.message);
+  }
+};
+
 // ================= SMTP =================
 const smtpEnabled =
   process.env.SMTP_HOST &&
@@ -359,6 +420,28 @@ app.post('/visitor', async (req, res) => {
     const visitorId = `BCNMV-${String(row.id).padStart(4, '0')}`;
     await pool.query('UPDATE visitors SET visitor_id = $1 WHERE id = $2', [visitorId, row.id]);
     row.visitor_id = visitorId;
+
+    // Send WhatsApp notification to person_to_meet (fire-and-forget)
+    try {
+      const phoneRow = await pool.query(
+        'SELECT phone_number FROM dropdown_options WHERE category = $1 AND value = $2 LIMIT 1',
+        ['person_to_meet', person_to_meet]
+      );
+      const toPhone = phoneRow.rows[0]?.phone_number;
+      if (toPhone) {
+        sendWhatsAppNotification({
+          toPhone,
+          visitorName: name,
+          company,
+          personToMeet: person_to_meet,
+          purpose,
+          location,
+          inTime: in_time,
+        });
+      }
+    } catch (notifErr) {
+      console.error('WhatsApp notification lookup failed:', notifErr.message);
+    }
 
     res.json(row);
   } catch (err) {
@@ -688,8 +771,8 @@ app.get('/dropdown-options', authenticate, async (req, res) => {
   try {
     const { category } = req.query;
     const result = category
-      ? await pool.query('SELECT id, value FROM dropdown_options WHERE category = $1 ORDER BY value ASC', [category])
-      : await pool.query('SELECT id, category, value FROM dropdown_options ORDER BY category, value ASC');
+      ? await pool.query('SELECT id, value, phone_number FROM dropdown_options WHERE category = $1 ORDER BY value ASC', [category])
+      : await pool.query('SELECT id, category, value, phone_number FROM dropdown_options ORDER BY category, value ASC');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -699,11 +782,11 @@ app.get('/dropdown-options', authenticate, async (req, res) => {
 
 app.post('/admin/dropdown-options', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { category, value } = req.body;
+    const { category, value, phone_number } = req.body;
     if (!category || !value || !value.trim()) return res.status(400).json({ error: 'Category and value are required' });
     const result = await pool.query(
-      'INSERT INTO dropdown_options (category, value) VALUES ($1, $2) RETURNING *',
-      [category, value.trim()]
+      'INSERT INTO dropdown_options (category, value, phone_number) VALUES ($1, $2, $3) RETURNING *',
+      [category, value.trim(), phone_number ? phone_number.trim() : null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -711,6 +794,23 @@ app.post('/admin/dropdown-options', authenticate, requireAdmin, async (req, res)
     if (err.code === '23514') return res.status(400).json({ error: 'Invalid category. Use: purpose, person_to_meet, or security_name' });
     console.error(err);
     res.status(500).json({ error: 'Failed to create option' });
+  }
+});
+
+app.put('/admin/dropdown-options/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    const { phone_number } = req.body;
+    const result = await pool.query(
+      'UPDATE dropdown_options SET phone_number = $1 WHERE id = $2 RETURNING *',
+      [phone_number ? phone_number.trim() : null, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Option not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update option' });
   }
 });
 

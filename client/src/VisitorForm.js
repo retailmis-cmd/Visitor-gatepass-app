@@ -42,7 +42,8 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
   const [saving, setSaving] = useState(false);
   const [availableLocations, setAvailableLocations] = useState([]);
   const [purposeOptions, setPurposeOptions] = useState([]);
-  const [personOptions, setPersonOptions] = useState([]);
+  const [personOptions, setPersonOptions] = useState([]); // [{ value, phone_number }]
+  const [personToMeetPhone, setPersonToMeetPhone] = useState('');
   const [comingFromOptions, setComingFromOptions] = useState([]);
   const webcamRef = useRef(null);
   const [facingMode, setFacingMode] = useState('user');
@@ -82,7 +83,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
         const purpData = await purposeRes.json();
         if (Array.isArray(purpData)) setPurposeOptions(purpData.map((o) => o.value));
         const personData = await personRes.json();
-        if (Array.isArray(personData)) setPersonOptions(personData.map((o) => o.value));
+        if (Array.isArray(personData)) setPersonOptions(personData.map((o) => ({ value: o.value, phone_number: o.phone_number || '' })));
         const cfData = await comingFromRes.json();
         if (Array.isArray(cfData)) setComingFromOptions(cfData.map((o) => o.value.toUpperCase()));
       } catch { /* silently fail */ }
@@ -104,6 +105,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
     setPhone('');
     setPurpose('');
     setPersonToMeet('');
+    setPersonToMeetPhone('');
     setScheduled('');
     setInTime(getCurrentTime());
     setOutTime('');
@@ -294,15 +296,32 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
               <TextField
                 label="Person to Meet"
                 value={personToMeet}
-                onChange={(e) => { setPersonToMeet(e.target.value); markDirty(); }}
+                onChange={(e) => {
+                  setPersonToMeet(e.target.value);
+                  const found = personOptions.find((o) => o.value === e.target.value);
+                  setPersonToMeetPhone(found?.phone_number || '');
+                  markDirty();
+                }}
                 select
                 fullWidth
                 required
               >
                 <MenuItem value="">-- Select Person --</MenuItem>
-                {personOptions.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
+                {personOptions.map((o) => (<MenuItem key={o.value} value={o.value}>{o.value}</MenuItem>))}
               </TextField>
             </Stack>
+
+            {/* Person to Meet Phone — auto-filled, read-only */}
+            {personToMeetPhone && (
+              <TextField
+                label="Person's Mobile (Auto-filled)"
+                value={personToMeetPhone}
+                fullWidth
+                InputProps={{ readOnly: true }}
+                inputProps={{ style: { color: '#388e3c', fontWeight: 600 } }}
+                helperText="WhatsApp notification will be sent to this number when you save."
+              />
+            )}
 
             {/* Location */}
             <TextField

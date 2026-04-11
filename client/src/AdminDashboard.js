@@ -53,7 +53,12 @@ export default function AdminDashboard({ user, token }) {
   const [dropdownCategory, setDropdownCategory] = useState('purpose');
   const [dropdownOptions, setDropdownOptions] = useState([]);
   const [newOptionValue, setNewOptionValue] = useState('');
+  const [newOptionPhone, setNewOptionPhone] = useState('');
   const [dropdownError, setDropdownError] = useState('');
+  // Edit phone dialog for person_to_meet
+  const [editPhoneDialog, setEditPhoneDialog] = useState(false);
+  const [editPhoneTarget, setEditPhoneTarget] = useState(null); // { id, value, phone_number }
+  const [editPhoneValue, setEditPhoneValue] = useState('');
 
   const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -192,11 +197,16 @@ export default function AdminDashboard({ user, token }) {
       const res = await fetch(`${API_URL}/admin/dropdown-options`, {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({ category: dropdownCategory, value: newOptionValue.trim() }),
+        body: JSON.stringify({
+          category: dropdownCategory,
+          value: newOptionValue.trim(),
+          phone_number: dropdownCategory === 'person_to_meet' ? newOptionPhone.trim() : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setDropdownError(data.error || 'Failed to add option'); return; }
       setNewOptionValue('');
+      setNewOptionPhone('');
       fetchDropdownOptions(dropdownCategory);
     } catch { setDropdownError('Failed to add option'); }
   };
@@ -209,6 +219,26 @@ export default function AdminDashboard({ user, token }) {
       if (!res.ok) { alert(data.error || 'Delete failed'); return; }
       fetchDropdownOptions(dropdownCategory);
     } catch { alert('Failed to delete option'); }
+  };
+
+  const openEditPhone = (opt) => {
+    setEditPhoneTarget(opt);
+    setEditPhoneValue(opt.phone_number || '');
+    setEditPhoneDialog(true);
+  };
+
+  const handleSavePhone = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/dropdown-options/${editPhoneTarget.id}`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({ phone_number: editPhoneValue.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Update failed'); return; }
+      setEditPhoneDialog(false);
+      fetchDropdownOptions(dropdownCategory);
+    } catch { alert('Failed to update phone number'); }
   };
 
   return (
@@ -402,12 +432,12 @@ export default function AdminDashboard({ user, token }) {
         <Card>
           <CardHeader title="Dropdown Options" subheader="Manage options for Purpose, Person to Meet, and Security Name" />
           <CardContent>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={3} alignItems="flex-start">
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems="flex-start" flexWrap="wrap">
               <TextField
                 label="Category"
                 select
                 value={dropdownCategory}
-                onChange={(e) => { setDropdownCategory(e.target.value); setDropdownError(''); }}
+                onChange={(e) => { setDropdownCategory(e.target.value); setDropdownError(''); setNewOptionValue(''); setNewOptionPhone(''); }}
                 sx={{ width: { xs: '100%', sm: 200 } }}
               >
                 {DROPDOWN_CATEGORIES.map((c) => (
@@ -415,39 +445,74 @@ export default function AdminDashboard({ user, token }) {
                 ))}
               </TextField>
               <TextField
-                label="New Option Value"
+                label="Name / Value"
                 value={newOptionValue}
                 onChange={(e) => setNewOptionValue(e.target.value)}
                 placeholder="Enter value"
                 size="small"
-                sx={{ flex: 1 }}
+                sx={{ flex: 1, minWidth: 160 }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddDropdownOption(); } }}
               />
+              {dropdownCategory === 'person_to_meet' && (
+                <TextField
+                  label="Mobile Number (WhatsApp)"
+                  value={newOptionPhone}
+                  onChange={(e) => setNewOptionPhone(e.target.value)}
+                  placeholder="e.g. 9876543210"
+                  size="small"
+                  sx={{ flex: 1, minWidth: 180 }}
+                  inputProps={{ maxLength: 15 }}
+                />
+              )}
               <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddDropdownOption} sx={{ bgcolor: '#ff8a00', '&:hover': { bgcolor: '#e07a00' } }}>
                 Add
               </Button>
             </Stack>
+            {dropdownCategory === 'person_to_meet' && (
+              <Typography variant="body2" sx={{ color: '#888', mb: 2, fontSize: '0.8rem' }}>
+                💡 Mobile number is used to send WhatsApp notifications when a visitor arrives. Enter 10-digit number (India) or with country code.
+              </Typography>
+            )}
             {dropdownError && <Typography color="error" variant="body2" mb={1}>{dropdownError}</Typography>}
             <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead sx={{ bgcolor: '#ff8a00' }}>
                   <TableRow>
-                    <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Value</TableCell>
+                    <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Name</TableCell>
+                    {dropdownCategory === 'person_to_meet' && (
+                      <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>WhatsApp Mobile</TableCell>
+                    )}
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }} align="right">Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {dropdownOptions.length === 0 ? (
-                    <TableRow><TableCell colSpan={2} align="center">No options yet. Add one above.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={dropdownCategory === 'person_to_meet' ? 3 : 2} align="center">No options yet. Add one above.</TableCell></TableRow>
                   ) : dropdownOptions.map((opt) => (
                     <TableRow key={opt.id} hover>
                       <TableCell>{opt.value}</TableCell>
+                      {dropdownCategory === 'person_to_meet' && (
+                        <TableCell>
+                          {opt.phone_number
+                            ? <Chip label={opt.phone_number} size="small" sx={{ bgcolor: '#e8f5e9', color: '#388e3c', fontWeight: 600 }} />
+                            : <Typography variant="body2" sx={{ color: '#bbb', fontStyle: 'italic' }}>Not set</Typography>}
+                        </TableCell>
+                      )}
                       <TableCell align="right">
-                        <Tooltip title="Delete">
-                          <IconButton size="small" color="error" onClick={() => handleDeleteDropdownOption(opt.id)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          {dropdownCategory === 'person_to_meet' && (
+                            <Tooltip title={opt.phone_number ? 'Edit Mobile Number' : 'Add Mobile Number'}>
+                              <IconButton size="small" color="primary" onClick={() => openEditPhone(opt)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Delete">
+                            <IconButton size="small" color="error" onClick={() => handleDeleteDropdownOption(opt.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -565,6 +630,31 @@ export default function AdminDashboard({ user, token }) {
         <DialogActions>
           <Button onClick={() => setAssignDialog(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleAssignLocations} sx={{ bgcolor: '#ff8a00' }}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* EDIT PHONE DIALOG */}
+      <Dialog open={editPhoneDialog} onClose={() => setEditPhoneDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>WhatsApp Mobile — {editPhoneTarget?.value}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} mt={1}>
+            <Typography variant="body2" sx={{ color: '#888' }}>
+              This number will receive a WhatsApp message when a visitor arrives to meet <strong>{editPhoneTarget?.value}</strong>.
+            </Typography>
+            <TextField
+              label="Mobile Number"
+              value={editPhoneValue}
+              onChange={(e) => setEditPhoneValue(e.target.value)}
+              placeholder="e.g. 9876543210"
+              fullWidth
+              inputProps={{ maxLength: 15 }}
+              helperText="10-digit Indian number or include country code (e.g. 919876543210)"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditPhoneDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSavePhone} sx={{ bgcolor: '#ff8a00' }}>Save</Button>
         </DialogActions>
       </Dialog>
     </Box>

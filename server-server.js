@@ -61,18 +61,17 @@ const otpStore = {};
   }
 })();
 
-// ================= WHATSAPP (UltraMsg) =================
-// Free plan: 1000 messages/month. No Meta/business account needed.
-// Sign up at https://ultramsg.com, create an instance, scan QR with your WhatsApp.
-// Set env vars: ULTRAMSG_INSTANCE_ID and ULTRAMSG_TOKEN
-// No per-recipient activation needed — messages go to any WhatsApp number.
+// ================= WHATSAPP (Green API) =================
+// Free Developer plan: 500 messages/month, no expiry.
+// Sign up at https://green-api.com, create an instance, scan QR with your WhatsApp.
+// Set env vars: GREENAPI_INSTANCE_ID and GREENAPI_TOKEN
 
-const ULTRAMSG_INSTANCE = process.env.ULTRAMSG_INSTANCE_ID;
-const ULTRAMSG_TOKEN    = process.env.ULTRAMSG_TOKEN;
+const GREENAPI_INSTANCE = process.env.GREENAPI_INSTANCE_ID;
+const GREENAPI_TOKEN    = process.env.GREENAPI_TOKEN;
 
 const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personToMeet, purpose, location, inTime }) => {
-  if (!ULTRAMSG_INSTANCE || !ULTRAMSG_TOKEN) {
-    console.log('WhatsApp (UltraMsg) not configured — skipping notification');
+  if (!GREENAPI_INSTANCE || !GREENAPI_TOKEN) {
+    console.log('WhatsApp (Green API) not configured — skipping notification');
     return;
   }
   if (!toPhone) {
@@ -94,23 +93,20 @@ const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personT
     `Please proceed to the reception to meet your visitor.`;
 
   try {
-    const resp = await fetch(
-      `https://api.ultramsg.com/${ULTRAMSG_INSTANCE}/messages/chat`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          token: ULTRAMSG_TOKEN,
-          to: phone,
-          body: message,
-        }).toString(),
-      }
-    );
+    const url = `https://api.green-api.com/waInstance${GREENAPI_INSTANCE}/sendMessage/${GREENAPI_TOKEN}`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chatId: `${phone}@c.us`,
+        message,
+      }),
+    });
     const data = await resp.json();
-    if (data.sent === 'true' || data.sent === true) {
-      console.log(`WhatsApp (UltraMsg) sent to ${phone}`);
+    if (data.idMessage) {
+      console.log(`WhatsApp (Green API) sent to ${phone}, id: ${data.idMessage}`);
     } else {
-      console.error('UltraMsg error:', data);
+      console.error('Green API error:', data);
     }
   } catch (err) {
     console.error('WhatsApp send failed:', err.message);

@@ -470,7 +470,7 @@ export default function AdminDashboard({ user, token }) {
             </Stack>
             {dropdownCategory === 'person_to_meet' && (
               <Typography variant="body2" sx={{ color: '#888', mb: 2, fontSize: '0.8rem' }}>
-                💡 Mobile number is used to send WhatsApp notifications (via UltraMsg) when a visitor arrives. Enter 10-digit number (India) or include country code.
+                💡 Mobile number is used to send WhatsApp notifications (via Green API) when a visitor arrives. Enter 10-digit number (India) or include country code.
               </Typography>
             )}
             {dropdownError && <Typography color="error" variant="body2" mb={1}>{dropdownError}</Typography>}
@@ -639,7 +639,7 @@ export default function AdminDashboard({ user, token }) {
         <DialogContent>
           <Stack spacing={2} mt={1}>
             <Typography variant="body2" sx={{ color: '#888' }}>
-              This number will receive a WhatsApp message (via UltraMsg) when a visitor arrives to meet <strong>{editPhoneTarget?.value}</strong>.
+              This number will receive a WhatsApp message (via Green API) when a visitor arrives to meet <strong>{editPhoneTarget?.value}</strong>.
             </Typography>
             <TextField
               label="Mobile Number"

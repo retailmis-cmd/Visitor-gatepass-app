@@ -4,7 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import {
   Drawer, List, ListItemButton, ListItemIcon, ListItemText,
   AppBar, Toolbar, Typography, Box, Button, Stack, Avatar,
-  Divider, Paper, Chip,
+  Divider, Paper, Chip, IconButton, useMediaQuery,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import GroupIcon from '@mui/icons-material/Group';
@@ -13,6 +13,7 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DownloadIcon from '@mui/icons-material/Download';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import MenuIcon from '@mui/icons-material/Menu';
 
 import LoginPage from './LoginPage';
 import SignupPage from './SignupPage';
@@ -55,6 +56,7 @@ function App() {
   const [refreshGatepasses, setRefreshGatepasses] = useState(0);
   const [authMode, setAuthMode] = useState('login');
   const [formDirty, setFormDirty] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isTokenExpired = (t) => {
     try {
@@ -79,6 +81,8 @@ function App() {
     if (!storedToken || isTokenExpired(storedToken)) return null;
     return storedToken;
   });
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // ==================== LOGIN ====================
   const handleLogin = async ({ email, password }) => {
@@ -287,9 +291,12 @@ function App() {
       <Box sx={{ display: 'flex' }}>
         {/* SIDEBAR DRAWER */}
         <Drawer
-          variant="permanent"
+          variant={isMobile ? 'temporary' : 'permanent'}
+          open={isMobile ? mobileOpen : true}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
           sx={{
-            width: drawerWidth,
+            width: { md: drawerWidth },
             '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' },
           }}
         >
@@ -322,6 +329,7 @@ function App() {
                   if (formDirty && !window.confirm('You have unsaved changes. Leave this page?')) return;
                   setFormDirty(false);
                   setCurrentPage(item.key);
+                  if (isMobile) setMobileOpen(false);
                 }}
               >
                 <ListItemIcon sx={item.key === 'admin' ? { color: '#ff8a00' } : {}}>{item.icon}</ListItemIcon>
@@ -334,8 +342,13 @@ function App() {
         {/* MAIN CONTENT */}
         <Box component="main" sx={{ flexGrow: 1 }}>
           {/* APPBAR */}
-          <AppBar position="fixed" elevation={0} sx={{ ml: `${drawerWidth}px`, width: `calc(100% - ${drawerWidth}px)` }}>
+          <AppBar position="fixed" elevation={0} sx={{ ml: { md: `${drawerWidth}px` }, width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` } }}>
             <Toolbar sx={{ justifyContent: 'space-between' }}>
+              {isMobile && (
+                <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1, color: 'inherit' }}>
+                  <MenuIcon />
+                </IconButton>
+              )}
               <Box sx={{ textAlign: 'center', flex: 1 }}>
                 <Typography variant="h6" fontWeight={700}>
                   Visitor & Gatepass Dashboard

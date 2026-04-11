@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Card, CardHeader, CardContent, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Typography, IconButton, Box,
-  Stack, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Button,
+  Stack, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -15,6 +15,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
   const [Gatepasses, setGatepasses] = useState([]);
   const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getToday());
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedGatepass, setSelectedGatepass] = useState(null);
   const [editingGatepass, setEditingGatepass] = useState(null);
@@ -101,25 +102,35 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
 
   const filtered = Gatepasses.filter((c) => {
     const cDate = c.date ? toLocalDate(c.date) : '';
-    return (!startDate || cDate >= startDate) && (!endDate || cDate <= endDate);
+    const matchDate = (!startDate || cDate >= startDate) && (!endDate || cDate <= endDate);
+    const q = search.toLowerCase();
+    const matchSearch = !search ||
+      c.document_number?.toLowerCase().includes(q) ||
+      c.vehicle_number?.toLowerCase().includes(q) ||
+      c.security_name?.toLowerCase().includes(q) ||
+      c.type?.toLowerCase().includes(q) ||
+      c.package_type?.toLowerCase().includes(q);
+    return matchDate && matchSearch;
   });
 
   return (
     <Card>
       <CardHeader title="Gatepass List" subheader={`Showing ${filtered.length} record${filtered.length === 1 ? '' : 's'}`} />
       <CardContent>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} flexWrap="wrap">
+          <TextField label="Search" placeholder="Doc no., vehicle, security..." value={search} onChange={(e) => setSearch(e.target.value)} sx={{ flex: 1, minWidth: 200 }} />
           <TextField label="From" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: { xs: '100%', sm: 180 } }} />
           <TextField label="To" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: { xs: '100%', sm: 180 } }} />
         </Stack>
         {loading ? (<Typography>Loading…</Typography>) : (
           <>
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
+            <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
+              <Table sx={{ minWidth: 500 }}>
                 <TableHead sx={{ backgroundColor: '#ff8a00' }}>
                   <TableRow>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Date</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Document No.</TableCell>
+                    <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Type</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>QTY</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Package Type</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Actions</TableCell>
@@ -127,11 +138,14 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                 </TableHead>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} align="center">No Gatepasses found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} align="center">No Gatepasses found.</TableCell></TableRow>
                   ) : filtered.map((c) => (
-                    <TableRow key={c.id} hover>
-                      <TableCell>{c.date || '-'}</TableCell>
-                      <TableCell>{c.document_number || '-'}</TableCell>
+                    <TableRow key={c.id} hover sx={{ '&:hover': { backgroundColor: '#fff8f0' } }}>
+                      <TableCell sx={{ fontSize: '0.95rem', py: 1.5 }}>{c.date || '-'}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{c.document_number || '-'}</TableCell>
+                      <TableCell>
+                        <Chip label={c.type || '-'} size="small" sx={{ bgcolor: c.type === 'INWARD' ? '#e8f5e9' : '#fff3e0', color: c.type === 'INWARD' ? '#388e3c' : '#e65100', fontWeight: 700 }} />
+                      </TableCell>
                       <TableCell>{c.qty || '-'}</TableCell>
                       <TableCell>{c.package_type || '-'}</TableCell>
                       <TableCell>
@@ -182,7 +196,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                 }}
               >
                 <h3>📋 Gatepass Details</h3>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                   <Box><strong>Date:</strong> {selectedGatepass.date || '-'}</Box>
                   <Box><strong>GP Number:</strong> {selectedGatepass.gp_number || '-'}</Box>
                   <Box><strong>Type:</strong> {selectedGatepass.type || '-'}</Box>
@@ -202,7 +216,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                     <img
                       src={selectedGatepass.photo}
                       alt="Gatepass"
-                      style={{ maxWidth: '200px', marginTop: '10px', borderRadius: '8px' }}
+                      style={{ maxWidth: '100%', maxHeight: '320px', marginTop: '10px', borderRadius: '8px', objectFit: 'contain', display: 'block' }}
                     />
                   </Box>
                 )}

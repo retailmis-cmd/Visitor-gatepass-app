@@ -116,26 +116,32 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
           <TextField label="To" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: { xs: '100%', sm: 160 } }} />
         </Stack>
         {loading ? (<Typography>Loading…</Typography>) : (
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
+          <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 750 }}>
               <TableHead>
-                <TableRow>
-                  <TableCell>Photo</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Company</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>In Time</TableCell>
-                  <TableCell>Out Time</TableCell>
-                  <TableCell align="right">Action</TableCell>
+                <TableRow sx={{ backgroundColor: '#ff8a00' }}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Photo</TableCell>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Coming From</TableCell>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Company</TableCell>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Location</TableCell>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>In Time</TableCell>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Out Time</TableCell>
+                  <TableCell align="right" sx={{ color: '#fff', fontWeight: 'bold' }}>Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} align="center">No visitors found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} align="center">No visitors found.</TableCell></TableRow>
                 ) : filtered.map((v) => (
-                  <TableRow key={v.id}>
-                    <TableCell>{v.photo ? <Avatar src={v.photo} variant="rounded" /> : <Avatar>{v.name?.slice(0, 1)}</Avatar>}</TableCell>
-                    <TableCell>{v.name}</TableCell>
+                  <TableRow key={v.id} sx={{ '&:hover': { backgroundColor: '#fff8f0' } }}>
+                    <TableCell sx={{ py: 1.5 }}>
+                      <Avatar src={v.photo || undefined} variant="rounded" sx={{ width: 64, height: 64 }}>
+                        {!v.photo && v.name?.slice(0, 1)}
+                      </Avatar>
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{v.name}</TableCell>
+                    <TableCell>{v.coming_from || '-'}</TableCell>
                     <TableCell>{v.company || '-'}</TableCell>
                     <TableCell>{v.location || '-'}</TableCell>
                     <TableCell>{v.in_time || '-'}</TableCell>

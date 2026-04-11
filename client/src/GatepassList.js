@@ -11,6 +11,15 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 const toLocalDate = (d) => { const dt = new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; };
 const getToday = () => toLocalDate(new Date());
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const formatDisplayDate = (d) => {
+  if (!d) return '-';
+  const s = typeof d === 'string' ? d : d.toISOString();
+  const parts = s.slice(0, 10).split('-');
+  if (parts.length !== 3) return String(d);
+  return `${parts[2]}-${MONTHS[parseInt(parts[1], 10) - 1]}-${parts[0]}`;
+};
+
 export default function GatepassList({ apiUrl, refresh, token, user }) {
   const [Gatepasses, setGatepasses] = useState([]);
   const [startDate, setStartDate] = useState(getToday());
@@ -141,7 +150,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                     <TableRow><TableCell colSpan={6} align="center">No Gatepasses found.</TableCell></TableRow>
                   ) : filtered.map((c) => (
                     <TableRow key={c.id} hover sx={{ '&:hover': { backgroundColor: '#fff8f0' } }}>
-                      <TableCell sx={{ fontSize: '0.95rem', py: 1.5 }}>{c.date || '-'}</TableCell>
+                      <TableCell sx={{ fontSize: '0.95rem', py: 1.5 }}>{formatDisplayDate(c.date)}</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{c.document_number || '-'}</TableCell>
                       <TableCell>
                         <Chip label={c.type || '-'} size="small" sx={{ bgcolor: c.type === 'INWARD' ? '#e8f5e9' : '#fff3e0', color: c.type === 'INWARD' ? '#388e3c' : '#e65100', fontWeight: 700 }} />
@@ -197,7 +206,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
               >
                 <h3>📋 Gatepass Details</h3>
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                  <Box><strong>Date:</strong> {selectedGatepass.date || '-'}</Box>
+                  <Box><strong>Date:</strong> {formatDisplayDate(selectedGatepass.date)}</Box>
                   <Box><strong>GP Number:</strong> {selectedGatepass.gp_number || '-'}</Box>
                   <Box><strong>Type:</strong> {selectedGatepass.type || '-'}</Box>
                   <Box><strong>Document Number:</strong> {selectedGatepass.document_number || '-'}</Box>

@@ -12,6 +12,15 @@ import LogoutIcon from '@mui/icons-material/Logout';
 const toLocalDate = (d) => { const dt = new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; };
 const getToday = () => toLocalDate(new Date());
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const formatDisplayDate = (d) => {
+  if (!d) return '-';
+  const s = typeof d === 'string' ? d : d.toISOString();
+  const parts = s.slice(0, 10).split('-');
+  if (parts.length !== 3) return String(d);
+  return `${parts[2]}-${MONTHS[parseInt(parts[1], 10) - 1]}-${parts[0]}`;
+};
+
 export default function VisitorList({ apiUrl, refresh, token, user }) {
   const [visitors, setVisitors] = useState([]);
   const [search, setSearch] = useState('');
@@ -121,6 +130,7 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#ff8a00' }}>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Photo</TableCell>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Date</TableCell>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Name</TableCell>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Coming From</TableCell>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Company</TableCell>
@@ -132,7 +142,7 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
               </TableHead>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} align="center">No visitors found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} align="center">No visitors found.</TableCell></TableRow>
                 ) : filtered.map((v) => (
                   <TableRow key={v.id} sx={{ '&:hover': { backgroundColor: '#fff8f0' } }}>
                     <TableCell sx={{ py: 1.5 }}>
@@ -140,6 +150,7 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
                         {!v.photo && v.name?.slice(0, 1)}
                       </Avatar>
                     </TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>{formatDisplayDate(v.date)}</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>{v.name}</TableCell>
                     <TableCell>{v.coming_from || '-'}</TableCell>
                     <TableCell>{v.company || '-'}</TableCell>

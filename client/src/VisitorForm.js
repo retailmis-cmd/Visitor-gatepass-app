@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import {
   Box, Card, CardHeader, CardContent, TextField, MenuItem,
-  Button, Stack, Avatar, Autocomplete,
+  Button, Stack, Avatar, Autocomplete, IconButton, Tooltip,
 } from '@mui/material';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
+import FlipCameraIosIcon from '@mui/icons-material/FlipCameraIos';
 
 const getToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const getCurrentTime = () => new Date().toTimeString().slice(0, 5);
@@ -44,6 +45,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
   const [personOptions, setPersonOptions] = useState([]);
   const [comingFromOptions, setComingFromOptions] = useState([]);
   const webcamRef = useRef(null);
+  const [facingMode, setFacingMode] = useState('user');
 
   const authHeaders = token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } : { 'Content-Type': 'application/json' };
   const markDirty = () => { if (onDirty) onDirty(true); };
@@ -325,9 +327,16 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
             </Stack>
 
             {cameraOpen && (
-              <Box className="camera-box">
-                <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg" videoConstraints={{ facingMode: 'user' }} />
-                <Button fullWidth onClick={capture} variant="contained" sx={{ mt: 1 }}>Capture</Button>
+              <Box className="camera-box" sx={{ position: 'relative' }}>
+                <Webcam key={facingMode} audio={false} ref={webcamRef} screenshotFormat="image/jpeg" videoConstraints={{ facingMode }} />
+                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                  <Button fullWidth onClick={capture} variant="contained">Capture</Button>
+                  <Tooltip title={facingMode === 'user' ? 'Switch to Rear Camera' : 'Switch to Front Camera'}>
+                    <IconButton onClick={() => setFacingMode((m) => m === 'user' ? 'environment' : 'user')} sx={{ bgcolor: 'rgba(255,138,0,0.1)', borderRadius: 2 }}>
+                      <FlipCameraIosIcon sx={{ color: '#ff8a00' }} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
               </Box>
             )}
 

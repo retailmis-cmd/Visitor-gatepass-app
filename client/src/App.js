@@ -56,11 +56,29 @@ function App() {
   const [authMode, setAuthMode] = useState('login');
   const [formDirty, setFormDirty] = useState(false);
 
+  const isTokenExpired = (t) => {
+    try {
+      const payload = JSON.parse(atob(t.split('.')[1]));
+      return Date.now() >= payload.exp * 1000;
+    } catch { return true; }
+  };
+
   const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('visitorAppUser')); }
-    catch { return null; }
+    try {
+      const storedToken = localStorage.getItem('visitorAppToken');
+      if (!storedToken || isTokenExpired(storedToken)) {
+        localStorage.removeItem('visitorAppUser');
+        localStorage.removeItem('visitorAppToken');
+        return null;
+      }
+      return JSON.parse(localStorage.getItem('visitorAppUser'));
+    } catch { return null; }
   });
-  const [token, setToken] = useState(() => localStorage.getItem('visitorAppToken') || null);
+  const [token, setToken] = useState(() => {
+    const storedToken = localStorage.getItem('visitorAppToken');
+    if (!storedToken || isTokenExpired(storedToken)) return null;
+    return storedToken;
+  });
 
   // ==================== LOGIN ====================
   const handleLogin = async ({ email, password }) => {

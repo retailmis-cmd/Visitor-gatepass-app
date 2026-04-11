@@ -45,26 +45,31 @@ const isPhone = (v) => /^\+?[0-9][0-9\-\s().]{5,}$/.test(v);
 const otpStore = {};
 
 // ================= DB MIGRATION =================
-// Auto-add phone_number column to dropdown_options if missing
+// Auto-add phone_number and whatsapp_apikey columns to dropdown_options if missing
 (async () => {
   try {
     await pool.query(`
       ALTER TABLE dropdown_options
       ADD COLUMN IF NOT EXISTS phone_number VARCHAR;
     `);
+    await pool.query(`
+      ALTER TABLE dropdown_options
+      ADD COLUMN IF NOT EXISTS whatsapp_apikey VARCHAR;
+    `);
   } catch (err) {
     console.error('Migration warning:', err.message);
   }
 })();
 
-// ================= WHATSAPP (UltraMsg) =================
-// Sign up free at https://ultramsg.com — no Meta/business account needed
-const ULTRAMSG_INSTANCE = process.env.ULTRAMSG_INSTANCE_ID;
-const ULTRAMSG_TOKEN    = process.env.ULTRAMSG_TOKEN;
+// ================= WHATSAPP (CallMeBot) =================
+// Free, no account needed on sender side.
+// Each recipient must activate once: send "I allow callmebot to send me messages"
+// to +34 644 44 82 47 on WhatsApp. They receive their personal API key.
+// Store that API key per person in the admin dashboard.
 
-const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personToMeet, purpose, location, inTime }) => {
-  if (!ULTRAMSG_INSTANCE || !ULTRAMSG_TOKEN) {
-    console.log('WhatsApp (UltraMsg) not configured — skipping notification');
+const sendWhatsAppNotification = async ({ toPhone, apiKey, visitorName, company, personToMeet, purpose, location, inTime }) => {
+  if (!toPhone || !apiKey) {
+    console.log(`WhatsApp skipped for ${personToMeet} — phone or API key not configured`);
     return;
   }
   // Normalize: strip non-digits, ensure 10-digit Indian numbers become 91XXXXXXXXXX
@@ -82,23 +87,13 @@ const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personT
     `Please proceed to the reception to meet your visitor.`;
 
   try {
-    const resp = await fetch(
-      `https://api.ultramsg.com/${ULTRAMSG_INSTANCE}/messages/chat`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          token: ULTRAMSG_TOKEN,
-          to: phone,
-          body: message,
-        }).toString(),
-      }
-    );
-    const data = await resp.json();
-    if (data.sent === 'true' || data.sent === true) {
-      console.log(`WhatsApp sent to ${phone}`);
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encodeURIComponent(message)}&apikey=${apiKey}`;
+    const resp = await fetch(url);
+    const text = await resp.text();
+    if (resp.ok) {
+      console.log(`WhatsApp (CallMeBot) sent to ${phone}`);
     } else {
-      console.error('UltraMsg error:', data);
+      console.error('CallMeBot error:', text);
     }
   } catch (err) {
     console.error('WhatsApp send failed:', err.message);
@@ -424,13 +419,15 @@ app.post('/visitor', async (req, res) => {
     // Send WhatsApp notification to person_to_meet (fire-and-forget)
     try {
       const phoneRow = await pool.query(
-        'SELECT phone_number FROM dropdown_options WHERE category = $1 AND value = $2 LIMIT 1',
+        'SELECT phone_number, whatsapp_apikey FROM dropdown_options WHERE category = $1 AND value = $2 LIMIT 1',
         ['person_to_meet', person_to_meet]
       );
       const toPhone = phoneRow.rows[0]?.phone_number;
-      if (toPhone) {
+      const apiKey = phoneRow.rows[0]?.whatsapp_apikey;
+      if (toPhone && apiKey) {
         sendWhatsAppNotification({
           toPhone,
+          apiKey,
           visitorName: name,
           company,
           personToMeet: person_to_meet,
@@ -771,8 +768,8 @@ app.get('/dropdown-options', authenticate, async (req, res) => {
   try {
     const { category } = req.query;
     const result = category
-      ? await pool.query('SELECT id, value, phone_number FROM dropdown_options WHERE category = $1 ORDER BY value ASC', [category])
-      : await pool.query('SELECT id, category, value, phone_number FROM dropdown_options ORDER BY category, value ASC');
+      ? await pool.query('SELECT id, value, phone_number, whatsapp_apikey FROM dropdown_options WHERE category = $1 ORDER BY value ASC', [category])
+      : await pool.query('SELECT id, category, value, phone_number, whatsapp_apikey FROM dropdown_options ORDER BY category, value ASC');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -782,11 +779,11 @@ app.get('/dropdown-options', authenticate, async (req, res) => {
 
 app.post('/admin/dropdown-options', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { category, value, phone_number } = req.body;
+    const { category, value, phone_number, whatsapp_apikey } = req.body;
     if (!category || !value || !value.trim()) return res.status(400).json({ error: 'Category and value are required' });
     const result = await pool.query(
-      'INSERT INTO dropdown_options (category, value, phone_number) VALUES ($1, $2, $3) RETURNING *',
-      [category, value.trim(), phone_number ? phone_number.trim() : null]
+      'INSERT INTO dropdown_options (category, value, phone_number, whatsapp_apikey) VALUES ($1, $2, $3, $4) RETURNING *',
+      [category, value.trim(), phone_number ? phone_number.trim() : null, whatsapp_apikey ? whatsapp_apikey.trim() : null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -801,10 +798,10 @@ app.put('/admin/dropdown-options/:id', authenticate, requireAdmin, async (req, r
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
-    const { phone_number } = req.body;
+    const { phone_number, whatsapp_apikey } = req.body;
     const result = await pool.query(
-      'UPDATE dropdown_options SET phone_number = $1 WHERE id = $2 RETURNING *',
-      [phone_number ? phone_number.trim() : null, id]
+      'UPDATE dropdown_options SET phone_number = $1, whatsapp_apikey = $2 WHERE id = $3 RETURNING *',
+      [phone_number ? phone_number.trim() : null, whatsapp_apikey ? whatsapp_apikey.trim() : null, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Option not found' });
     res.json(result.rows[0]);

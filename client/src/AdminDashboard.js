@@ -54,11 +54,13 @@ export default function AdminDashboard({ user, token }) {
   const [dropdownOptions, setDropdownOptions] = useState([]);
   const [newOptionValue, setNewOptionValue] = useState('');
   const [newOptionPhone, setNewOptionPhone] = useState('');
+  const [newOptionApiKey, setNewOptionApiKey] = useState('');
   const [dropdownError, setDropdownError] = useState('');
-  // Edit phone dialog for person_to_meet
+  // Edit phone/apikey dialog for person_to_meet
   const [editPhoneDialog, setEditPhoneDialog] = useState(false);
-  const [editPhoneTarget, setEditPhoneTarget] = useState(null); // { id, value, phone_number }
+  const [editPhoneTarget, setEditPhoneTarget] = useState(null);
   const [editPhoneValue, setEditPhoneValue] = useState('');
+  const [editApiKeyValue, setEditApiKeyValue] = useState('');
 
   const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -201,12 +203,14 @@ export default function AdminDashboard({ user, token }) {
           category: dropdownCategory,
           value: newOptionValue.trim(),
           phone_number: dropdownCategory === 'person_to_meet' ? newOptionPhone.trim() : undefined,
+          whatsapp_apikey: dropdownCategory === 'person_to_meet' ? newOptionApiKey.trim() : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) { setDropdownError(data.error || 'Failed to add option'); return; }
       setNewOptionValue('');
       setNewOptionPhone('');
+      setNewOptionApiKey('');
       fetchDropdownOptions(dropdownCategory);
     } catch { setDropdownError('Failed to add option'); }
   };
@@ -224,6 +228,7 @@ export default function AdminDashboard({ user, token }) {
   const openEditPhone = (opt) => {
     setEditPhoneTarget(opt);
     setEditPhoneValue(opt.phone_number || '');
+    setEditApiKeyValue(opt.whatsapp_apikey || '');
     setEditPhoneDialog(true);
   };
 
@@ -232,13 +237,13 @@ export default function AdminDashboard({ user, token }) {
       const res = await fetch(`${API_URL}/admin/dropdown-options/${editPhoneTarget.id}`, {
         method: 'PUT',
         headers: authHeaders,
-        body: JSON.stringify({ phone_number: editPhoneValue.trim() }),
+        body: JSON.stringify({ phone_number: editPhoneValue.trim(), whatsapp_apikey: editApiKeyValue.trim() }),
       });
       const data = await res.json();
       if (!res.ok) { alert(data.error || 'Update failed'); return; }
       setEditPhoneDialog(false);
       fetchDropdownOptions(dropdownCategory);
-    } catch { alert('Failed to update phone number'); }
+    } catch { alert('Failed to update'); }
   };
 
   return (
@@ -455,13 +460,23 @@ export default function AdminDashboard({ user, token }) {
               />
               {dropdownCategory === 'person_to_meet' && (
                 <TextField
-                  label="Mobile Number (WhatsApp)"
+                  label="Mobile Number"
                   value={newOptionPhone}
                   onChange={(e) => setNewOptionPhone(e.target.value)}
                   placeholder="e.g. 9876543210"
                   size="small"
-                  sx={{ flex: 1, minWidth: 180 }}
+                  sx={{ flex: 1, minWidth: 160 }}
                   inputProps={{ maxLength: 15 }}
+                />
+              )}
+              {dropdownCategory === 'person_to_meet' && (
+                <TextField
+                  label="CallMeBot API Key"
+                  value={newOptionApiKey}
+                  onChange={(e) => setNewOptionApiKey(e.target.value)}
+                  placeholder="e.g. 1234567"
+                  size="small"
+                  sx={{ flex: 1, minWidth: 140 }}
                 />
               )}
               <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddDropdownOption} sx={{ bgcolor: '#ff8a00', '&:hover': { bgcolor: '#e07a00' } }}>
@@ -470,7 +485,7 @@ export default function AdminDashboard({ user, token }) {
             </Stack>
             {dropdownCategory === 'person_to_meet' && (
               <Typography variant="body2" sx={{ color: '#888', mb: 2, fontSize: '0.8rem' }}>
-                💡 Mobile number is used to send WhatsApp notifications when a visitor arrives. Enter 10-digit number (India) or with country code.
+                💡 <strong>How to activate for each person:</strong> They must send <em>"I allow callmebot to send me messages"</em> to <strong>+34 644 44 82 47</strong> on WhatsApp once. They will receive their personal API key. Enter that key here alongside their mobile number.
               </Typography>
             )}
             {dropdownError && <Typography color="error" variant="body2" mb={1}>{dropdownError}</Typography>}
@@ -480,7 +495,7 @@ export default function AdminDashboard({ user, token }) {
                   <TableRow>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Name</TableCell>
                     {dropdownCategory === 'person_to_meet' && (
-                      <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>WhatsApp Mobile</TableCell>
+                      <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>WhatsApp Status</TableCell>
                     )}
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }} align="right">Action</TableCell>
                   </TableRow>
@@ -493,9 +508,11 @@ export default function AdminDashboard({ user, token }) {
                       <TableCell>{opt.value}</TableCell>
                       {dropdownCategory === 'person_to_meet' && (
                         <TableCell>
-                          {opt.phone_number
-                            ? <Chip label={opt.phone_number} size="small" sx={{ bgcolor: '#e8f5e9', color: '#388e3c', fontWeight: 600 }} />
-                            : <Typography variant="body2" sx={{ color: '#bbb', fontStyle: 'italic' }}>Not set</Typography>}
+                          {opt.phone_number && opt.whatsapp_apikey
+                            ? <Chip label="✅ Active" size="small" sx={{ bgcolor: '#e8f5e9', color: '#388e3c', fontWeight: 600 }} />
+                            : opt.phone_number
+                              ? <Chip label="⚠️ No API Key" size="small" sx={{ bgcolor: '#fff8e1', color: '#f57c00', fontWeight: 600 }} />
+                              : <Chip label="Not configured" size="small" sx={{ bgcolor: '#f5f5f5', color: '#aaa' }} />}
                         </TableCell>
                       )}
                       <TableCell align="right">
@@ -635,11 +652,17 @@ export default function AdminDashboard({ user, token }) {
 
       {/* EDIT PHONE DIALOG */}
       <Dialog open={editPhoneDialog} onClose={() => setEditPhoneDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>WhatsApp Mobile — {editPhoneTarget?.value}</DialogTitle>
+        <DialogTitle>WhatsApp Setup — {editPhoneTarget?.value}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <Typography variant="body2" sx={{ color: '#888' }}>
-              This number will receive a WhatsApp message when a visitor arrives to meet <strong>{editPhoneTarget?.value}</strong>.
+            <Typography variant="body2" sx={{ color: '#555' }}>
+              <strong>Step 1:</strong> <strong>{editPhoneTarget?.value}</strong> must send this message to <strong>+34 644 44 82 47</strong> on WhatsApp:
+            </Typography>
+            <Typography variant="body2" sx={{ bgcolor: '#f5f5f5', p: 1.5, borderRadius: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}>
+              I allow callmebot to send me messages
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#555' }}>
+              <strong>Step 2:</strong> They will receive their personal API key. Enter it below.
             </Typography>
             <TextField
               label="Mobile Number"
@@ -648,7 +671,15 @@ export default function AdminDashboard({ user, token }) {
               placeholder="e.g. 9876543210"
               fullWidth
               inputProps={{ maxLength: 15 }}
-              helperText="10-digit Indian number or include country code (e.g. 919876543210)"
+              helperText="10-digit number or with country code (e.g. 919876543210)"
+            />
+            <TextField
+              label="CallMeBot API Key"
+              value={editApiKeyValue}
+              onChange={(e) => setEditApiKeyValue(e.target.value)}
+              placeholder="e.g. 1234567"
+              fullWidth
+              helperText="Received by the person after they activate on WhatsApp"
             />
           </Stack>
         </DialogContent>

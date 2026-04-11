@@ -243,7 +243,7 @@ export default function AdminDashboard({ user, token }) {
       </Stack>
 
       {/* Tab navigation */}
-      <Stack direction="row" spacing={1} mb={2}>
+      <Stack direction="row" spacing={1} mb={2} sx={{ overflowX: 'auto', pb: 0.5, '& .MuiButton-root': { flexShrink: 0 } }}>
         <Button
           variant={activeTab === 'users' ? 'contained' : 'text'}
           startIcon={<PeopleIcon />}
@@ -278,7 +278,7 @@ export default function AdminDashboard({ user, token }) {
             {loading ? (
               <Typography>Loading...</Typography>
             ) : (
-              <TableContainer component={Paper} variant="outlined">
+              <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
                 <Table>
                   <TableHead sx={{ bgcolor: '#ff8a00' }}>
                     <TableRow>
@@ -360,7 +360,7 @@ export default function AdminDashboard({ user, token }) {
         <Card>
           <CardHeader title="Locations" subheader="Locations available for access assignment" />
           <CardContent>
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
               <Table>
                 <TableHead sx={{ bgcolor: '#ff8a00' }}>
                   <TableRow>
@@ -408,7 +408,7 @@ export default function AdminDashboard({ user, token }) {
                 select
                 value={dropdownCategory}
                 onChange={(e) => { setDropdownCategory(e.target.value); setDropdownError(''); }}
-                sx={{ width: 200 }}
+                sx={{ width: { xs: '100%', sm: 200 } }}
               >
                 {DROPDOWN_CATEGORIES.map((c) => (
                   <MenuItem key={c.key} value={c.key}>{c.label}</MenuItem>
@@ -428,7 +428,7 @@ export default function AdminDashboard({ user, token }) {
               </Button>
             </Stack>
             {dropdownError && <Typography color="error" variant="body2" mb={1}>{dropdownError}</Typography>}
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead sx={{ bgcolor: '#ff8a00' }}>
                   <TableRow>

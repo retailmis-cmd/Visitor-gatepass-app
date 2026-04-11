@@ -4,7 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import {
   Drawer, List, ListItemButton, ListItemIcon, ListItemText,
   AppBar, Toolbar, Typography, Box, Button, Stack, Avatar,
-  Divider, Paper, Chip, IconButton, useMediaQuery,
+  Divider, Paper, Chip, IconButton, useMediaQuery, Tooltip,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import GroupIcon from '@mui/icons-material/Group';
@@ -343,28 +343,30 @@ function App() {
         <Box component="main" sx={{ flexGrow: 1 }}>
           {/* APPBAR */}
           <AppBar position="fixed" elevation={0} sx={{ ml: { md: `${drawerWidth}px` }, width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` } }}>
-            <Toolbar sx={{ justifyContent: 'space-between' }}>
+            <Toolbar>
               {isMobile && (
-                <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1, color: 'inherit' }}>
+                <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ color: 'inherit', mr: 1 }}>
                   <MenuIcon />
                 </IconButton>
               )}
-              <Box sx={{ textAlign: 'center', flex: 1 }}>
-                <Typography variant="h6" fontWeight={700}>
-                  Visitor & Gatepass Dashboard
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h6" fontWeight={700} noWrap sx={{ fontSize: { xs: '0.9rem', sm: '1.1rem', md: '1.2rem' } }}>
+                  Visitor &amp; Gatepass Dashboard
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.6 }}>
+                <Typography variant="body2" sx={{ opacity: 0.6, display: { xs: 'none', md: 'block' } }}>
                   {isAdmin ? 'Admin — Full Access' : `Locations: ${user.assignedLocations?.join(', ') || 'None assigned'}`}
                 </Typography>
               </Box>
-              <Button startIcon={<LogoutIcon />} onClick={handleLogout} color="inherit" sx={{ ml: 'auto' }}>
-                Logout
-              </Button>
+              <Tooltip title="Logout">
+                <IconButton onClick={handleLogout} color="inherit">
+                  <LogoutIcon />
+                </IconButton>
+              </Tooltip>
             </Toolbar>
           </AppBar>
 
           {/* CENTERED CONTENT AREA */}
-          <Box sx={{ mt: 12, p: 3, display: 'flex', justifyContent: 'center', minHeight: 'calc(100vh - 100px)' }}>
+          <Box sx={{ mt: { xs: 8, md: 12 }, p: { xs: 1.5, sm: 2, md: 3 }, display: 'flex', justifyContent: 'center', minHeight: 'calc(100vh - 100px)' }}>
             <Box sx={{ width: '100%', maxWidth: '1100px' }}>
               {currentPage === 'admin' && isAdmin && (
                 <AdminDashboard user={user} token={token} />

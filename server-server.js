@@ -57,13 +57,14 @@ const otpStore = {};
   }
 })();
 
-// ================= WHATSAPP =================
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
-const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID;
+// ================= WHATSAPP (UltraMsg) =================
+// Sign up free at https://ultramsg.com — no Meta/business account needed
+const ULTRAMSG_INSTANCE = process.env.ULTRAMSG_INSTANCE_ID;
+const ULTRAMSG_TOKEN    = process.env.ULTRAMSG_TOKEN;
 
 const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personToMeet, purpose, location, inTime }) => {
-  if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_ID) {
-    console.log('WhatsApp not configured — skipping notification');
+  if (!ULTRAMSG_INSTANCE || !ULTRAMSG_TOKEN) {
+    console.log('WhatsApp (UltraMsg) not configured — skipping notification');
     return;
   }
   // Normalize: strip non-digits, ensure 10-digit Indian numbers become 91XXXXXXXXXX
@@ -82,24 +83,23 @@ const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personT
 
   try {
     const resp = await fetch(
-      `https://graph.facebook.com/v19.0/${WHATSAPP_PHONE_ID}/messages`,
+      `https://api.ultramsg.com/${ULTRAMSG_INSTANCE}/messages/chat`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          token: ULTRAMSG_TOKEN,
           to: phone,
-          type: 'text',
-          text: { body: message },
-        }),
+          body: message,
+        }).toString(),
       }
     );
     const data = await resp.json();
-    if (!resp.ok) console.error('WhatsApp API error:', data);
-    else console.log(`WhatsApp sent to ${phone}`);
+    if (data.sent === 'true' || data.sent === true) {
+      console.log(`WhatsApp sent to ${phone}`);
+    } else {
+      console.error('UltraMsg error:', data);
+    }
   } catch (err) {
     console.error('WhatsApp send failed:', err.message);
   }

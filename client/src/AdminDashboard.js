@@ -102,8 +102,12 @@ export default function AdminDashboard({ user, token }) {
   /* ---------- Create User ---------- */
   const handleCreateUser = async () => {
     setUserError('');
-    if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
-      setUserError('Name, email, and password are required.');
+    if (!newUser.name.trim() || !newUser.password.trim()) {
+      setUserError('Name and password are required.');
+      return;
+    }
+    if (newUser.role === 'admin' && !newUser.email.trim()) {
+      setUserError('Email is required for admin accounts.');
       return;
     }
     try {
@@ -530,14 +534,16 @@ export default function AdminDashboard({ user, token }) {
           <Stack spacing={2} mt={1}>
             {userError && <Typography color="error" variant="body2">{userError}</Typography>}
             <TextField label="Full Name" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} fullWidth required />
-            <TextField label="Email" type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} fullWidth required />
+            {newUser.role === 'admin' && (
+              <TextField label="Email" type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} fullWidth required helperText="Required for admin password reset" />
+            )}
             <TextField label="Password" type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} fullWidth required />
             <TextField label="Phone Number (optional)" value={newUser.phone_number} onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })} fullWidth />
             <TextField
               label="Role"
               select
               value={newUser.role}
-              onChange={(e) => setNewUser({ ...newUser, role: e.target.value, locationIds: [] })}
+              onChange={(e) => setNewUser({ ...newUser, role: e.target.value, email: '', locationIds: [] })}
               fullWidth
             >
               <MenuItem value="user">User</MenuItem>

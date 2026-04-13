@@ -46,6 +46,7 @@ const otpStore = {};
 
 // ================= DB MIGRATION =================
 // Auto-add phone_number and whatsapp_apikey columns to dropdown_options if missing
+// Also make users.email nullable so admin-created users don't require an email
 (async () => {
   try {
     await pool.query(`
@@ -56,6 +57,8 @@ const otpStore = {};
       ALTER TABLE dropdown_options
       ADD COLUMN IF NOT EXISTS whatsapp_apikey VARCHAR;
     `);
+    // Allow email to be NULL for user accounts (admins always have email)
+    await pool.query(`ALTER TABLE users ALTER COLUMN email DROP NOT NULL;`);
   } catch (err) {
     console.error('Migration warning:', err.message);
   }
@@ -204,10 +207,20 @@ app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const result = await pool.query(
+    if (!email || !password)
+      return res.status(400).json({ error: 'Username/email and password are required' });
+
+    // Try email lookup first; fall back to case-insensitive name lookup for users without email
+    let result = await pool.query(
       'SELECT * FROM users WHERE email=$1',
       [email.toLowerCase()]
     );
+    if (!result.rows.length) {
+      result = await pool.query(
+        'SELECT * FROM users WHERE LOWER(name)=$1',
+        [email.toLowerCase()]
+      );
+    }
 
     if (!result.rows.length)
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -245,7 +258,7 @@ app.post('/login', async (req, res) => {
 
 // ================= PASSWORD RESET =================
 
-// SEND OTP
+// SEND OTP — admin accounts only
 app.post('/auth/send-otp', async (req, res) => {
   try {
     const { email } = req.body;
@@ -254,14 +267,18 @@ app.post('/auth/send-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email is required' });
     }
 
-    // Check if user exists
+    // Check if user exists and is an admin
     const result = await pool.query(
-      'SELECT id FROM users WHERE email=$1',
+      'SELECT id, role FROM users WHERE email=$1',
       [email.toLowerCase()]
     );
 
     if (!result.rows.length) {
       return res.status(404).json({ success: false, message: 'Email not registered' });
+    }
+
+    if (result.rows[0].role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Password reset is only available for admin accounts. Please contact your administrator to reset your password.' });
     }
 
     // Generate OTP
@@ -723,15 +740,28 @@ app.get('/admin/users', authenticate, requireAdmin, async (req, res) => {
 app.post('/admin/users', authenticate, requireAdmin, async (req, res) => {
   try {
     const { name, email, password, phone_number, role, locationIds } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ error: 'Name, email, and password are required' });
     const userRole = ['admin', 'user'].includes(role) ? role : 'user';
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
-    if (existing.rows.length > 0) return res.status(409).json({ error: 'User already exists' });
+
+    // Email is required for admin accounts; optional for regular users
+    if (!name || !password) return res.status(400).json({ error: 'Name and password are required' });
+    if (userRole === 'admin' && !email) return res.status(400).json({ error: 'Email is required for admin accounts' });
+
+    // Check uniqueness: by email if provided, otherwise by name for users
+    if (email) {
+      const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+      if (existing.rows.length > 0) return res.status(409).json({ error: 'A user with this email already exists' });
+    } else {
+      const existing = await pool.query('SELECT id FROM users WHERE LOWER(name) = $1 AND email IS NULL', [name.toLowerCase()]);
+      if (existing.rows.length > 0) return res.status(409).json({ error: 'A user with this name already exists' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const normalizedPhone = phone_number ? normalizePhone(phone_number) : null;
+    const emailValue = email ? email.toLowerCase() : null;
+
     const userResult = await pool.query(
       'INSERT INTO users (name, email, password, phone_number, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role',
-      [name, email.toLowerCase(), hashedPassword, normalizedPhone, userRole]
+      [name, emailValue, hashedPassword, normalizedPhone, userRole]
     );
     const newUserId = userResult.rows[0].id;
     if (Array.isArray(locationIds) && locationIds.length > 0 && userRole === 'user') {

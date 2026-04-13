@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Button, Stack, Link } from '@mui/material';
 
-export default function LoginPage({ onLogin, onSwitchMode, onForgotPassword }) {
+export default function LoginPage({ onLogin, onForgotPassword }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -12,7 +12,7 @@ export default function LoginPage({ onLogin, onSwitchMode, onForgotPassword }) {
     setError('');
 
     if (!email.trim()) {
-      setError('Please enter your email address.');
+      setError('Please enter your email or username.');
       return;
     }
 
@@ -40,14 +40,14 @@ export default function LoginPage({ onLogin, onSwitchMode, onForgotPassword }) {
         <Typography variant="h6" fontWeight={700}>Login</Typography>
         
         <TextField 
-          label="Email" 
-          type="email" 
+          label="Email / Username" 
+          type="text" 
           value={email} 
           onChange={(e) => setEmail(e.target.value)} 
           fullWidth 
           required
           disabled={loading}
-          placeholder="Enter your email"
+          placeholder="Enter your email or username"
         />
         
         <TextField 
@@ -87,7 +87,7 @@ export default function LoginPage({ onLogin, onSwitchMode, onForgotPassword }) {
             }}
             sx={{ cursor: 'pointer', whiteSpace: 'nowrap', color: '#ff8a00', fontWeight: 600 }}
           >
-            Forgot password?
+            Forgot password? (Admins only)
           </Link>
         </Box>
       </Stack>

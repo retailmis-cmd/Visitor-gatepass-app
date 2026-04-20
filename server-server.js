@@ -471,7 +471,9 @@ app.post('/visitor', async (req, res) => {
         'SELECT phone_number, whatsapp_apikey FROM dropdown_options WHERE category = $1 AND value = $2 LIMIT 1',
         ['person_to_meet', person_to_meet]
       );
+      console.log(`WhatsApp lookup for "${person_to_meet}":`, phoneRow.rows[0]);
       const toPhone = phoneRow.rows[0]?.phone_number;
+      console.log(`GREENAPI_INSTANCE: ${GREENAPI_INSTANCE ? 'SET' : 'NOT SET'}, GREENAPI_TOKEN: ${GREENAPI_TOKEN ? 'SET' : 'NOT SET'}, toPhone: ${toPhone}`);
       if (toPhone) {
         sendWhatsAppNotification({
           toPhone,

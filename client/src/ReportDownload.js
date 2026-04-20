@@ -183,7 +183,8 @@ export default function ReportDownload({ apiUrl, token }) {
 
                   worksheet.addImage(imageId, {
                     tl: { col: photoIndex, row: excelRow.number - 1 },
-                    ext: { width: 100, height: 100 },
+                    br: { col: photoIndex + 1, row: excelRow.number },
+                    editAs: 'oneCell',
                   });
 
                   excelRow.height = 100;

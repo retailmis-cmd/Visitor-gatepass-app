@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 require('dotenv').config();
 
 const express = require('express');
@@ -70,18 +71,28 @@ const otpStore = {};
 // Set env vars: GREENAPI_INSTANCE_ID and GREENAPI_TOKEN
 
 const GREENAPI_INSTANCE = process.env.GREENAPI_INSTANCE_ID;
-const GREENAPI_TOKEN    = process.env.GREENAPI_TOKEN;
+const GREENAPI_TOKEN = process.env.GREENAPI_TOKEN;
 
-const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personToMeet, purpose, location, inTime }) => {
+const sendWhatsAppNotification = async ({
+  toPhone,
+  visitorName,
+  company,
+  personToMeet,
+  purpose,
+  location,
+  inTime,
+}) => {
   if (!GREENAPI_INSTANCE || !GREENAPI_TOKEN) {
-    console.log('WhatsApp (Green API) not configured — skipping notification');
+    console.log('WhatsApp not configured — skipping notification');
     return;
   }
+
   if (!toPhone) {
-    console.log(`WhatsApp skipped for ${personToMeet} — phone number not saved`);
+    console.log(`WhatsApp skipped — no phone number for ${personToMeet}`);
     return;
   }
-  // Normalize: strip non-digits, ensure 10-digit Indian numbers become 91XXXXXXXXXX
+
+  // Normalize phone
   let phone = String(toPhone).replace(/\D/g, '');
   if (phone.length === 10) phone = '91' + phone;
 
@@ -97,6 +108,7 @@ const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personT
 
   try {
     const url = `https://api.green-api.com/waInstance${GREENAPI_INSTANCE}/sendMessage/${GREENAPI_TOKEN}`;
+
     const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -105,9 +117,17 @@ const sendWhatsAppNotification = async ({ toPhone, visitorName, company, personT
         message,
       }),
     });
+
+    // ✅ Handle HTTP errors
+    if (!resp.ok) {
+      console.error(`Green API HTTP error: ${resp.status}`);
+      return;
+    }
+
     const data = await resp.json();
+
     if (data.idMessage) {
-      console.log(`WhatsApp (Green API) sent to ${phone}, id: ${data.idMessage}`);
+      console.log(`WhatsApp sent successfully`);
     } else {
       console.error('Green API error:', data);
     }

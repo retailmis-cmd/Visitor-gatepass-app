@@ -146,7 +146,7 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
                 ) : filtered.map((v) => (
                   <TableRow key={v.id} sx={{ '&:hover': { backgroundColor: '#fff8f0' } }}>
                     <TableCell sx={{ py: 1.5 }}>
-                      <Avatar src={v.photo || undefined} variant="rounded" sx={{ width: 64, height: 64 }}>
+                      <Avatar src={v.photo || undefined} variant="rounded" sx={{ width: 120, height: 120 }}>
                         {!v.photo && v.name?.slice(0, 1)}
                       </Avatar>
                     </TableCell>

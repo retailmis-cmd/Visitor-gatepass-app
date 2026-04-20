@@ -135,6 +135,28 @@ const sendWhatsAppNotification = async ({
   }
 };
 
+// ================= WHATSAPP TEST ENDPOINT =================
+// Call: GET /test-whatsapp?phone=91XXXXXXXXXX
+app.get('/test-whatsapp', async (req, res) => {
+  const phone = req.query.phone;
+  if (!phone) return res.json({ error: 'Pass ?phone=91XXXXXXXXXX' });
+  console.log(`Test WhatsApp — INSTANCE: ${GREENAPI_INSTANCE || 'NOT SET'}, TOKEN: ${GREENAPI_TOKEN ? 'SET' : 'NOT SET'}, phone: ${phone}`);
+  try {
+    await sendWhatsAppNotification({
+      toPhone: phone,
+      visitorName: 'Test Visitor',
+      company: 'Test Co',
+      personToMeet: 'Test Person',
+      purpose: 'Testing',
+      location: 'Test Location',
+      inTime: new Date().toTimeString().slice(0, 5),
+    });
+    res.json({ status: 'Attempted — check Render logs for result' });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
 // ================= SMTP =================
 const smtpEnabled =
   process.env.SMTP_HOST &&

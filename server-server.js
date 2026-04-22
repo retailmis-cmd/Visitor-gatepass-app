@@ -331,27 +331,43 @@ app.get('/health', async (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// ================= BIGQUERY DEBUG =================
+app.get('/bigquery-debug', async (req, res) => {
+  if (!bigquery) return res.json({ configured: false, reason: 'GOOGLE_SERVICE_ACCOUNT_JSON not set or invalid' });
+  try {
+    const [datasets] = await bigquery.getDatasets();
+    const datasetNames = datasets.map(d => d.id);
+    res.json({ configured: true, project: BQ_PROJECT, datasets: datasetNames });
+  } catch (err) {
+    res.json({ configured: true, project: BQ_PROJECT, error: err.message });
+  }
+});
+
 // ================= BIGQUERY DAILY SYNC =================
 // Triggered by cron-job.org every night at midnight
-// Syncs yesterday's visitors and consignments to BigQuery
+// Syncs yesterday's (or ?date=YYYY-MM-DD) visitors and consignments to BigQuery
 app.get('/bigquery-sync', async (req, res) => {
   if (!bigquery) return res.json({ status: 'skipped', reason: 'BigQuery not configured' });
   try {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = yesterday.toISOString().slice(0, 10);
+    // Allow ?date=YYYY-MM-DD for manual/test runs; default to yesterday
+    let dateStr = req.query.date;
+    if (!dateStr) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      dateStr = yesterday.toISOString().slice(0, 10);
+    }
 
-    // Sync visitors
+    // Sync visitors — delete duplicates first via DML query
     const vResult = await pool.query(
       `SELECT id, date, visitor_id, name, coming_from, company, location, phone_number,
               purpose, person_to_meet, scheduled, in_time, out_time
        FROM visitors WHERE DATE(date) = $1`, [dateStr]
     );
     if (vResult.rows.length > 0) {
-      // Delete existing rows for this date to avoid duplicates
-      await bigquery.dataset(BQ_DATASET).table('visitors').query(
-        `DELETE FROM \`${BQ_PROJECT}.${BQ_DATASET}.visitors\` WHERE date = '${dateStr}'`
-      ).catch(() => {}); // ignore if table empty
+      await bigquery.query({
+        query: `DELETE FROM \`${BQ_PROJECT}.${BQ_DATASET}.visitors\` WHERE date = @dt`,
+        params: { dt: dateStr },
+      }).catch(() => {});
       const vRows = vResult.rows.map(r => ({
         id: r.id, date: dateStr, visitor_id: r.visitor_id || null,
         name: r.name || null, coming_from: r.coming_from || null,
@@ -371,9 +387,10 @@ app.get('/bigquery-sync', async (req, res) => {
        FROM consignments WHERE DATE(date) = $1`, [dateStr]
     );
     if (cResult.rows.length > 0) {
-      await bigquery.dataset(BQ_DATASET).table('consignments').query(
-        `DELETE FROM \`${BQ_PROJECT}.${BQ_DATASET}.consignments\` WHERE date = '${dateStr}'`
-      ).catch(() => {});
+      await bigquery.query({
+        query: `DELETE FROM \`${BQ_PROJECT}.${BQ_DATASET}.consignments\` WHERE date = @dt`,
+        params: { dt: dateStr },
+      }).catch(() => {});
       const cRows = cResult.rows.map(r => ({
         id: r.id, date: dateStr, gp_number: r.gp_number || null,
         type: r.type || null, document_number: r.document_number || null,

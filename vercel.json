@@ -26,6 +26,7 @@
     { "source": "/test-whatsapp",       "destination": "/api/index.js" },
     { "source": "/whatsapp-keepalive",  "destination": "/api/index.js" },
     { "source": "/bigquery-sync",       "destination": "/api/index.js" },
+    { "source": "/bigquery-debug",      "destination": "/api/index.js" },
     { "source": "/(.*)",                "destination": "/index.html" }
   ]
 }

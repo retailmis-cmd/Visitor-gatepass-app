@@ -370,6 +370,25 @@ app.get('/bigquery-debug', async (req, res) => {
   } catch (err) {
     result.consignments_error = err.message;
   }
+  // Test a real MERGE insert with a dummy row id=0
+  try {
+    await bigquery.query({
+      query: `MERGE \`${BQ_PROJECT}.${BQ_DATASET}.visitors\` T
+        USING (SELECT @id AS id) S ON T.id = S.id
+        WHEN MATCHED THEN UPDATE SET name=@name
+        WHEN NOT MATCHED THEN INSERT (id,date,visitor_id,name,coming_from,company,location,phone_number,purpose,person_to_meet,scheduled,in_time,out_time)
+          VALUES(@id,@date,@visitor_id,@name,@coming_from,@company,@location,@phone_number,@purpose,@person_to_meet,@scheduled,@in_time,@out_time)`,
+      params: {
+        id: 0, date: '2026-04-22', visitor_id: 'TEST-0000', name: 'Debug Test',
+        coming_from: 'Test', company: 'Test Co', location: 'Test', phone_number: '0000000000',
+        purpose: 'Testing', person_to_meet: 'Admin', scheduled: 'no', in_time: '10:00', out_time: null,
+      },
+      types: { id: 'INT64', date: 'DATE' },
+    });
+    result.test_insert = 'success — check visitors table for id=0 row';
+  } catch (err) {
+    result.test_insert_error = err.errors ? JSON.stringify(err.errors) : err.message;
+  }
   res.json(result);
 });
 

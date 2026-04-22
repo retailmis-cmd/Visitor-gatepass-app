@@ -135,6 +135,21 @@ const sendWhatsAppNotification = async ({
   }
 };
 
+// ================= WHATSAPP KEEP-ALIVE =================
+app.get('/whatsapp-keepalive', async (req, res) => {
+  if (!GREENAPI_INSTANCE || !GREENAPI_TOKEN) {
+    return res.json({ status: 'skipped', reason: 'credentials not set' });
+  }
+  try {
+    const url = `https://api.green-api.com/waInstance${GREENAPI_INSTANCE}/getStateInstance/${GREENAPI_TOKEN}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    res.json({ status: 'ok', instanceState: data.stateInstance });
+  } catch (err) {
+    res.json({ status: 'error', error: err.message });
+  }
+});
+
 // ================= WHATSAPP TEST ENDPOINT =================
 // Call: GET /test-whatsapp?phone=91XXXXXXXXXX
 app.get('/test-whatsapp', async (req, res) => {

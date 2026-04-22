@@ -135,6 +135,7 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Name</TableCell>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Coming From</TableCell>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Company</TableCell>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Person to Meet</TableCell>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Location</TableCell>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>In Time</TableCell>
                   <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Out Time</TableCell>
@@ -143,7 +144,7 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
               </TableHead>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} align="center">No visitors found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} align="center">No visitors found.</TableCell></TableRow>
                 ) : filtered.map((v) => (
                   <TableRow key={v.id} sx={{ '&:hover': { backgroundColor: '#fff8f0' } }}>
                     <TableCell sx={{ py: 1.5 }}>
@@ -155,6 +156,7 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
                     <TableCell sx={{ fontWeight: 600 }}>{v.name}</TableCell>
                     <TableCell>{v.coming_from || '-'}</TableCell>
                     <TableCell>{v.company || '-'}</TableCell>
+                    <TableCell>{v.person_to_meet || '-'}</TableCell>
                     <TableCell>{v.location || '-'}</TableCell>
                     <TableCell>{v.in_time || '-'}</TableCell>
                     <TableCell>

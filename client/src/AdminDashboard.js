@@ -26,6 +26,8 @@ const DROPDOWN_CATEGORIES = [
   { key: 'person_to_meet', label: 'Person to Meet' },
   { key: 'security_name', label: 'Security Name' },
   { key: 'coming_from', label: 'Coming From (Locations)' },
+  { key: 'document_type', label: 'Document Type' },
+  { key: 'package_type', label: 'Package Type' },
 ];
 
 export default function AdminDashboard({ user, token }) {

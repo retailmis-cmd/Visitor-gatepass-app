@@ -979,7 +979,7 @@ app.get('/reports/visitors', async (req, res) => {
 
     const result = await pool.query(
       `SELECT id, date, visitor_id, name, coming_from, company, location, 
-              phone_number, purpose, person_to_meet, scheduled, out_time, photo
+              phone_number, purpose, person_to_meet, scheduled, in_time, out_time, photo
        FROM visitors 
        WHERE DATE(date) BETWEEN $1::DATE AND $2::DATE 
        ORDER BY date DESC`,

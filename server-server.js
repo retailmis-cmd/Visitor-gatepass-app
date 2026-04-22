@@ -11,7 +11,7 @@ const { BigQuery } = require('@google-cloud/bigquery');
 // ================= BIGQUERY =================
 let bigquery = null;
 const BQ_PROJECT = 'bcivpl-store-level';
-const BQ_DATASET = 'visitor_app';
+const BQ_DATASET = 'Visitors_Gatepass_dataflow';
 
 try {
   const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;

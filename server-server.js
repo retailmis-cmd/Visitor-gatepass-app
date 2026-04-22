@@ -49,7 +49,7 @@ const bqInsertVisitor = async (row) => {
         purpose: row.purpose || null, person_to_meet: row.person_to_meet || null,
         scheduled: row.scheduled || null, in_time: row.in_time || null, out_time,
       },
-      types: { id: 'INT64', date: 'DATE' },
+      types: { id: 'INT64', date: 'DATE', visitor_id: 'STRING', name: 'STRING', coming_from: 'STRING', company: 'STRING', location: 'STRING', phone_number: 'STRING', purpose: 'STRING', person_to_meet: 'STRING', scheduled: 'STRING', in_time: 'STRING', out_time: 'STRING' },
     });
     console.log(`BQ: visitor ${row.visitor_id} upserted`);
   } catch (err) {
@@ -82,7 +82,7 @@ const bqInsertConsignment = async (row) => {
         package_type: row.package_type || null, comment: row.comment || null,
         security_name: row.security_name || null, location: row.location || null,
       },
-      types: { id: 'INT64', date: 'DATE' },
+      types: { id: 'INT64', date: 'DATE', gp_number: 'STRING', type: 'STRING', document_number: 'STRING', document_type: 'STRING', in_time: 'STRING', vehicle_number: 'STRING', driver_contact: 'STRING', qty: 'STRING', package_type: 'STRING', comment: 'STRING', security_name: 'STRING', location: 'STRING' },
     });
     console.log(`BQ: consignment ${row.gp_number} upserted`);
   } catch (err) {
@@ -383,7 +383,7 @@ app.get('/bigquery-debug', async (req, res) => {
         coming_from: 'Test', company: 'Test Co', location: 'Test', phone_number: '0000000000',
         purpose: 'Testing', person_to_meet: 'Admin', scheduled: 'no', in_time: '10:00', out_time: null,
       },
-      types: { id: 'INT64', date: 'DATE' },
+      types: { id: 'INT64', date: 'DATE', visitor_id: 'STRING', name: 'STRING', coming_from: 'STRING', company: 'STRING', location: 'STRING', phone_number: 'STRING', purpose: 'STRING', person_to_meet: 'STRING', scheduled: 'STRING', in_time: 'STRING', out_time: 'STRING' },
     });
     result.test_insert = 'success — check visitors table for id=0 row';
   } catch (err) {

@@ -29,7 +29,7 @@ try {
 const bqInsertVisitor = async (row) => {
   if (!bigquery) return;
   try {
-    const dateStr = row.date ? String(row.date).slice(0, 10) : null;
+    const dateStr = row.date ? (row.date instanceof Date ? row.date.toISOString() : String(row.date)).slice(0, 10) : null;
     const out_time = row.out_time ? String(row.out_time).slice(0, 5) : null;
     await bigquery.query({
       query: `MERGE \`${BQ_PROJECT}.${BQ_DATASET}.visitors\` T
@@ -62,7 +62,7 @@ const bqInsertVisitor = async (row) => {
 const bqInsertConsignment = async (row) => {
   if (!bigquery) return;
   try {
-    const dateStr = row.date ? String(row.date).slice(0, 10) : null;
+    const dateStr = row.date ? (row.date instanceof Date ? row.date.toISOString() : String(row.date)).slice(0, 10) : null;
     await bigquery.query({
       query: `MERGE \`${BQ_PROJECT}.${BQ_DATASET}.consignments\` T
         USING (SELECT @id AS id) S ON T.id = S.id

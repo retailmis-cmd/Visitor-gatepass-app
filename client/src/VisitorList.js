@@ -101,8 +101,9 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
     } catch (err) { alert(err.message); }
   };
 
-  // Build location filter options from actual data
-  const uniqueLocations = ['All', ...Array.from(new Set(visitors.map((v) => v.location).filter(Boolean)))];
+  // Build location filter options from actual data, excluding specific locations
+  const excludedLocations = ['Conference Room', 'Office A'];
+  const uniqueLocations = ['All', ...Array.from(new Set(visitors.map((v) => v.location).filter(Boolean))).filter((l) => !excludedLocations.includes(l))];
 
   const filtered = visitors.filter((v) => {
     const matchSearch = v.name?.toLowerCase().includes(search.toLowerCase()) || v.company?.toLowerCase().includes(search.toLowerCase());
@@ -201,7 +202,9 @@ export default function VisitorList({ apiUrl, refresh, token, user }) {
           <Stack spacing={2} mt={1}>
             <Stack direction="row" spacing={2}>
               <TextField label="Date" type="date" value={editFields.date || ''} onChange={(e) => setEditFields({ ...editFields, date: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
-              <TextField label="Location" value={editFields.location || ''} onChange={(e) => setEditFields({ ...editFields, location: e.target.value })} fullWidth />
+              <TextField label="Location" value={editFields.location || ''} onChange={(e) => setEditFields({ ...editFields, location: e.target.value })} select fullWidth>
+                {uniqueLocations.filter((l) => l !== 'All').map((l) => (<MenuItem key={l} value={l}>{l}</MenuItem>))}
+              </TextField>
             </Stack>
             <TextField label="Name" value={editFields.name || ''} onChange={(e) => setEditFields({ ...editFields, name: e.target.value.toUpperCase() })} fullWidth />
             <Stack direction="row" spacing={2}>

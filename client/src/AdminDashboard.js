@@ -54,11 +54,13 @@ export default function AdminDashboard({ user, token }) {
   const [dropdownOptions, setDropdownOptions] = useState([]);
   const [newOptionValue, setNewOptionValue] = useState('');
   const [newOptionPhone, setNewOptionPhone] = useState('');
+  const [newOptionEmail, setNewOptionEmail] = useState('');
   const [dropdownError, setDropdownError] = useState('');
-  // Edit phone dialog for person_to_meet
+  // Edit phone/email dialog for person_to_meet
   const [editPhoneDialog, setEditPhoneDialog] = useState(false);
   const [editPhoneTarget, setEditPhoneTarget] = useState(null);
   const [editPhoneValue, setEditPhoneValue] = useState('');
+  const [editEmailValue, setEditEmailValue] = useState('');
 
   const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -205,12 +207,14 @@ export default function AdminDashboard({ user, token }) {
           category: dropdownCategory,
           value: newOptionValue.trim(),
           phone_number: dropdownCategory === 'person_to_meet' ? newOptionPhone.trim() : undefined,
+          email: dropdownCategory === 'person_to_meet' ? newOptionEmail.trim() : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) { setDropdownError(data.error || 'Failed to add option'); return; }
       setNewOptionValue('');
       setNewOptionPhone('');
+      setNewOptionEmail('');
       fetchDropdownOptions(dropdownCategory);
     } catch { setDropdownError('Failed to add option'); }
   };
@@ -228,6 +232,7 @@ export default function AdminDashboard({ user, token }) {
   const openEditPhone = (opt) => {
     setEditPhoneTarget(opt);
     setEditPhoneValue(opt.phone_number || '');
+    setEditEmailValue(opt.email || '');
     setEditPhoneDialog(true);
   };
 
@@ -236,7 +241,7 @@ export default function AdminDashboard({ user, token }) {
       const res = await fetch(`${API_URL}/admin/dropdown-options/${editPhoneTarget.id}`, {
         method: 'PUT',
         headers: authHeaders,
-        body: JSON.stringify({ phone_number: editPhoneValue.trim() }),
+        body: JSON.stringify({ phone_number: editPhoneValue.trim(), email: editEmailValue.trim() }),
       });
       const data = await res.json();
       if (!res.ok) { alert(data.error || 'Update failed'); return; }
@@ -468,13 +473,24 @@ export default function AdminDashboard({ user, token }) {
                   inputProps={{ maxLength: 15 }}
                 />
               )}
+              {dropdownCategory === 'person_to_meet' && (
+                <TextField
+                  label="Email (for notifications)"
+                  value={newOptionEmail}
+                  onChange={(e) => setNewOptionEmail(e.target.value)}
+                  placeholder="e.g. john@company.com"
+                  size="small"
+                  sx={{ flex: 1, minWidth: 200 }}
+                  type="email"
+                />
+              )}
               <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddDropdownOption} sx={{ bgcolor: '#ff8a00', '&:hover': { bgcolor: '#e07a00' } }}>
                 Add
               </Button>
             </Stack>
             {dropdownCategory === 'person_to_meet' && (
               <Typography variant="body2" sx={{ color: '#888', mb: 2, fontSize: '0.8rem' }}>
-                💡 Mobile number is used to send WhatsApp notifications (via Green API) when a visitor arrives. Enter 10-digit number (India) or include country code.
+                💡 Add mobile number for WhatsApp notifications and/or email for email notifications when a visitor arrives.
               </Typography>
             )}
             {dropdownError && <Typography color="error" variant="body2" mb={1}>{dropdownError}</Typography>}
@@ -483,15 +499,13 @@ export default function AdminDashboard({ user, token }) {
                 <TableHead sx={{ bgcolor: '#ff8a00' }}>
                   <TableRow>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Name</TableCell>
-                    {dropdownCategory === 'person_to_meet' && (
-                      <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>WhatsApp Status</TableCell>
-                    )}
+                    {dropdownCategory === 'person_to_meet' && (<><TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>WhatsApp</TableCell><TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Email</TableCell></>)}
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }} align="right">Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {dropdownOptions.length === 0 ? (
-                    <TableRow><TableCell colSpan={dropdownCategory === 'person_to_meet' ? 3 : 2} align="center">No options yet. Add one above.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={dropdownCategory === 'person_to_meet' ? 4 : 2} align="center">No options yet. Add one above.</TableCell></TableRow>
                   ) : dropdownOptions.map((opt) => (
                     <TableRow key={opt.id} hover>
                       <TableCell>{opt.value}</TableCell>
@@ -499,6 +513,13 @@ export default function AdminDashboard({ user, token }) {
                         <TableCell>
                           {opt.phone_number
                             ? <Chip label={opt.phone_number} size="small" sx={{ bgcolor: '#e8f5e9', color: '#388e3c', fontWeight: 600 }} />
+                            : <Chip label="Not set" size="small" sx={{ bgcolor: '#f5f5f5', color: '#aaa' }} />}
+                        </TableCell>
+                      )}
+                      {dropdownCategory === 'person_to_meet' && (
+                        <TableCell>
+                          {opt.email
+                            ? <Chip label={opt.email} size="small" sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 600 }} />
                             : <Chip label="Not set" size="small" sx={{ bgcolor: '#f5f5f5', color: '#aaa' }} />}
                         </TableCell>
                       )}
@@ -639,22 +660,31 @@ export default function AdminDashboard({ user, token }) {
         </DialogActions>
       </Dialog>
 
-      {/* EDIT PHONE DIALOG */}
+      {/* EDIT PHONE/EMAIL DIALOG */}
       <Dialog open={editPhoneDialog} onClose={() => setEditPhoneDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>WhatsApp Number — {editPhoneTarget?.value}</DialogTitle>
+        <DialogTitle>Contact Details — {editPhoneTarget?.value}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
             <Typography variant="body2" sx={{ color: '#888' }}>
-              This number will receive a WhatsApp message (via Green API) when a visitor arrives to meet <strong>{editPhoneTarget?.value}</strong>.
+              Notifications will be sent to <strong>{editPhoneTarget?.value}</strong> when a visitor arrives.
             </Typography>
             <TextField
-              label="Mobile Number"
+              label="Mobile Number (WhatsApp)"
               value={editPhoneValue}
               onChange={(e) => setEditPhoneValue(e.target.value)}
               placeholder="e.g. 9876543210"
               fullWidth
               inputProps={{ maxLength: 15 }}
               helperText="10-digit Indian number or with country code (e.g. 919876543210)"
+            />
+            <TextField
+              label="Email Address"
+              value={editEmailValue}
+              onChange={(e) => setEditEmailValue(e.target.value)}
+              placeholder="e.g. john@company.com"
+              fullWidth
+              type="email"
+              helperText="Will receive an email notification when a visitor arrives"
             />
           </Stack>
         </DialogContent>

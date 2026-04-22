@@ -45,18 +45,12 @@ const isPhone = (v) => /^\+?[0-9][0-9\-\s().]{5,}$/.test(v);
 const otpStore = {};
 
 // ================= DB MIGRATION =================
-// Auto-add phone_number and whatsapp_apikey columns to dropdown_options if missing
-// Also make users.email nullable so admin-created users don't require an email
+// Auto-add columns to dropdown_options if missing
 (async () => {
   try {
-    await pool.query(`
-      ALTER TABLE dropdown_options
-      ADD COLUMN IF NOT EXISTS phone_number VARCHAR;
-    `);
-    await pool.query(`
-      ALTER TABLE dropdown_options
-      ADD COLUMN IF NOT EXISTS whatsapp_apikey VARCHAR;
-    `);
+    await pool.query(`ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS phone_number VARCHAR;`);
+    await pool.query(`ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS whatsapp_apikey VARCHAR;`);
+    await pool.query(`ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS email VARCHAR;`);
     // Allow email to be NULL for user accounts (admins always have email)
     await pool.query(`ALTER TABLE users ALTER COLUMN email DROP NOT NULL;`);
   } catch (err) {
@@ -520,15 +514,16 @@ app.post('/visitor', async (req, res) => {
     await pool.query('UPDATE visitors SET visitor_id = $1 WHERE id = $2', [visitorId, row.id]);
     row.visitor_id = visitorId;
 
-    // Send WhatsApp notification to person_to_meet (awaited for serverless compatibility)
+    // Send WhatsApp + Email notification to person_to_meet
     try {
-      const phoneRow = await pool.query(
-        'SELECT phone_number, whatsapp_apikey FROM dropdown_options WHERE category = $1 AND value = $2 LIMIT 1',
+      const contactRow = await pool.query(
+        'SELECT phone_number, email FROM dropdown_options WHERE category = $1 AND value = $2 LIMIT 1',
         ['person_to_meet', person_to_meet]
       );
-      console.log(`WhatsApp lookup for "${person_to_meet}":`, phoneRow.rows[0]);
-      const toPhone = phoneRow.rows[0]?.phone_number;
-      console.log(`GREENAPI_INSTANCE: ${GREENAPI_INSTANCE ? 'SET' : 'NOT SET'}, GREENAPI_TOKEN: ${GREENAPI_TOKEN ? 'SET' : 'NOT SET'}, toPhone: ${toPhone}`);
+      const toPhone = contactRow.rows[0]?.phone_number;
+      const toEmail = contactRow.rows[0]?.email;
+
+      // WhatsApp
       if (toPhone) {
         await sendWhatsAppNotification({
           toPhone,
@@ -540,8 +535,36 @@ app.post('/visitor', async (req, res) => {
           inTime: in_time,
         });
       }
+
+      // Email
+      if (toEmail && smtpEnabled && transporter) {
+        await transporter.sendMail({
+          from: process.env.OTP_FROM_EMAIL,
+          to: toEmail,
+          subject: `Visitor Arrival: ${name} is here to meet you`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto;border:1px solid #eee;border-radius:8px;overflow:hidden">
+              <div style="background:#ff8a00;padding:16px 24px">
+                <h2 style="color:#fff;margin:0">Visitor Arrival Notification</h2>
+              </div>
+              <div style="padding:24px">
+                <p style="margin:0 0 16px">Hello <strong>${person_to_meet}</strong>,</p>
+                <p style="margin:0 0 16px">A visitor has arrived to meet you.</p>
+                <table style="width:100%;border-collapse:collapse">
+                  <tr><td style="padding:8px;background:#f9f9f9;font-weight:bold;width:40%">Name</td><td style="padding:8px">${name}</td></tr>
+                  <tr><td style="padding:8px;font-weight:bold">Company</td><td style="padding:8px">${company}</td></tr>
+                  <tr><td style="padding:8px;background:#f9f9f9;font-weight:bold">Purpose</td><td style="padding:8px;background:#f9f9f9">${purpose}</td></tr>
+                  <tr><td style="padding:8px;font-weight:bold">Location</td><td style="padding:8px">${location}</td></tr>
+                  <tr><td style="padding:8px;background:#f9f9f9;font-weight:bold">In Time</td><td style="padding:8px;background:#f9f9f9">${in_time}</td></tr>
+                </table>
+                <p style="margin:16px 0 0;color:#888;font-size:12px">Please proceed to the reception to meet your visitor.</p>
+              </div>
+            </div>`,
+        });
+        console.log(`Email notification sent to ${toEmail} for visitor ${name}`);
+      }
     } catch (notifErr) {
-      console.error('WhatsApp notification lookup failed:', notifErr.message);
+      console.error('Notification failed:', notifErr.message);
     }
 
     res.json(row);
@@ -896,11 +919,11 @@ app.get('/dropdown-options', authenticate, async (req, res) => {
 
 app.post('/admin/dropdown-options', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { category, value, phone_number, whatsapp_apikey } = req.body;
+    const { category, value, phone_number, whatsapp_apikey, email } = req.body;
     if (!category || !value || !value.trim()) return res.status(400).json({ error: 'Category and value are required' });
     const result = await pool.query(
-      'INSERT INTO dropdown_options (category, value, phone_number, whatsapp_apikey) VALUES ($1, $2, $3, $4) RETURNING *',
-      [category, value.trim(), phone_number ? phone_number.trim() : null, whatsapp_apikey ? whatsapp_apikey.trim() : null]
+      'INSERT INTO dropdown_options (category, value, phone_number, whatsapp_apikey, email) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [category, value.trim(), phone_number ? phone_number.trim() : null, whatsapp_apikey ? whatsapp_apikey.trim() : null, email ? email.trim() : null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -915,10 +938,10 @@ app.put('/admin/dropdown-options/:id', authenticate, requireAdmin, async (req, r
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
-    const { phone_number } = req.body;
+    const { phone_number, email } = req.body;
     const result = await pool.query(
-      'UPDATE dropdown_options SET phone_number = $1 WHERE id = $2 RETURNING *',
-      [phone_number ? phone_number.trim() : null, id]
+      'UPDATE dropdown_options SET phone_number = $1, email = $2 WHERE id = $3 RETURNING *',
+      [phone_number ? phone_number.trim() : null, email ? email.trim() : null, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Option not found' });
     res.json(result.rows[0]);

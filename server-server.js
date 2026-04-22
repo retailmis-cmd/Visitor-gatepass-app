@@ -487,7 +487,7 @@ app.post('/visitor', async (req, res) => {
     await pool.query('UPDATE visitors SET visitor_id = $1 WHERE id = $2', [visitorId, row.id]);
     row.visitor_id = visitorId;
 
-    // Send WhatsApp notification to person_to_meet (fire-and-forget)
+    // Send WhatsApp notification to person_to_meet (awaited for serverless compatibility)
     try {
       const phoneRow = await pool.query(
         'SELECT phone_number, whatsapp_apikey FROM dropdown_options WHERE category = $1 AND value = $2 LIMIT 1',
@@ -497,7 +497,7 @@ app.post('/visitor', async (req, res) => {
       const toPhone = phoneRow.rows[0]?.phone_number;
       console.log(`GREENAPI_INSTANCE: ${GREENAPI_INSTANCE ? 'SET' : 'NOT SET'}, GREENAPI_TOKEN: ${GREENAPI_TOKEN ? 'SET' : 'NOT SET'}, toPhone: ${toPhone}`);
       if (toPhone) {
-        sendWhatsAppNotification({
+        await sendWhatsAppNotification({
           toPhone,
           visitorName: name,
           company,

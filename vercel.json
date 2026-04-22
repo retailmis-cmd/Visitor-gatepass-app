@@ -23,6 +23,7 @@
     { "source": "/reports/:path*",      "destination": "/api/index.js" },
     { "source": "/locations",           "destination": "/api/index.js" },
     { "source": "/auth/:path*",         "destination": "/api/index.js" },
+    { "source": "/test-whatsapp",       "destination": "/api/index.js" },
     { "source": "/(.*)",                "destination": "/index.html" }
   ]
 }

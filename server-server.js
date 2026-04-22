@@ -29,49 +29,60 @@ try {
 const bqInsertVisitor = async (row) => {
   if (!bigquery) return;
   try {
-    await bigquery.dataset(BQ_DATASET).table('visitors').insert([{
-      id: row.id,
-      date: row.date ? String(row.date).slice(0, 10) : null,
-      visitor_id: row.visitor_id || null,
-      name: row.name || null,
-      coming_from: row.coming_from || null,
-      company: row.company || null,
-      location: row.location || null,
-      phone_number: row.phone_number || null,
-      purpose: row.purpose || null,
-      person_to_meet: row.person_to_meet || null,
-      scheduled: row.scheduled || null,
-      in_time: row.in_time || null,
-      out_time: row.out_time ? String(row.out_time).slice(0, 5) : null,
-    }]);
-    console.log(`BQ: visitor ${row.visitor_id} inserted`);
+    const date = row.date ? String(row.date).slice(0, 10) : null;
+    const out_time = row.out_time ? String(row.out_time).slice(0, 5) : null;
+    await bigquery.query({
+      query: `MERGE \`${BQ_PROJECT}.${BQ_DATASET}.visitors\` T
+        USING (SELECT @id AS id) S ON T.id = S.id
+        WHEN MATCHED THEN UPDATE SET
+          date=@date, visitor_id=@visitor_id, name=@name, coming_from=@coming_from,
+          company=@company, location=@location, phone_number=@phone_number,
+          purpose=@purpose, person_to_meet=@person_to_meet, scheduled=@scheduled,
+          in_time=@in_time, out_time=@out_time
+        WHEN NOT MATCHED THEN INSERT
+          (id,date,visitor_id,name,coming_from,company,location,phone_number,purpose,person_to_meet,scheduled,in_time,out_time)
+          VALUES(@id,@date,@visitor_id,@name,@coming_from,@company,@location,@phone_number,@purpose,@person_to_meet,@scheduled,@in_time,@out_time)`,
+      params: {
+        id: row.id, date, visitor_id: row.visitor_id || null, name: row.name || null,
+        coming_from: row.coming_from || null, company: row.company || null,
+        location: row.location || null, phone_number: row.phone_number || null,
+        purpose: row.purpose || null, person_to_meet: row.person_to_meet || null,
+        scheduled: row.scheduled || null, in_time: row.in_time || null, out_time,
+      },
+    });
+    console.log(`BQ: visitor ${row.visitor_id} upserted`);
   } catch (err) {
-    console.error('BQ visitor insert failed:', err.message);
+    console.error('BQ visitor upsert failed:', err.message);
   }
 };
 
 const bqInsertConsignment = async (row) => {
   if (!bigquery) return;
   try {
-    await bigquery.dataset(BQ_DATASET).table('consignments').insert([{
-      id: row.id,
-      date: row.date ? String(row.date).slice(0, 10) : null,
-      gp_number: row.gp_number || null,
-      type: row.type || null,
-      document_number: row.document_number || null,
-      document_type: row.document_type || null,
-      in_time: row.in_time || null,
-      vehicle_number: row.vehicle_number || null,
-      driver_contact: row.driver_contact || null,
-      qty: row.qty ? String(row.qty) : null,
-      package_type: row.package_type || null,
-      comment: row.comment || null,
-      security_name: row.security_name || null,
-      location: row.location || null,
-    }]);
-    console.log(`BQ: consignment ${row.gp_number} inserted`);
+    const date = row.date ? String(row.date).slice(0, 10) : null;
+    await bigquery.query({
+      query: `MERGE \`${BQ_PROJECT}.${BQ_DATASET}.consignments\` T
+        USING (SELECT @id AS id) S ON T.id = S.id
+        WHEN MATCHED THEN UPDATE SET
+          date=@date, gp_number=@gp_number, type=@type, document_number=@document_number,
+          document_type=@document_type, in_time=@in_time, vehicle_number=@vehicle_number,
+          driver_contact=@driver_contact, qty=@qty, package_type=@package_type,
+          comment=@comment, security_name=@security_name, location=@location
+        WHEN NOT MATCHED THEN INSERT
+          (id,date,gp_number,type,document_number,document_type,in_time,vehicle_number,driver_contact,qty,package_type,comment,security_name,location)
+          VALUES(@id,@date,@gp_number,@type,@document_number,@document_type,@in_time,@vehicle_number,@driver_contact,@qty,@package_type,@comment,@security_name,@location)`,
+      params: {
+        id: row.id, date, gp_number: row.gp_number || null, type: row.type || null,
+        document_number: row.document_number || null, document_type: row.document_type || null,
+        in_time: row.in_time || null, vehicle_number: row.vehicle_number || null,
+        driver_contact: row.driver_contact || null, qty: row.qty ? String(row.qty) : null,
+        package_type: row.package_type || null, comment: row.comment || null,
+        security_name: row.security_name || null, location: row.location || null,
+      },
+    });
+    console.log(`BQ: consignment ${row.gp_number} upserted`);
   } catch (err) {
-    console.error('BQ consignment insert failed:', err.message);
+    console.error('BQ consignment upsert failed:', err.message);
   }
 };
 
@@ -718,8 +729,8 @@ app.post('/visitor', async (req, res) => {
       console.error('Notification failed:', notifErr.message);
     }
 
-    // BigQuery real-time insert (fire-and-forget)
-    bqInsertVisitor(row);
+    // BigQuery real-time insert
+    await bqInsertVisitor(row);
 
     res.json(row);
   } catch (err) {
@@ -780,6 +791,7 @@ app.put('/visitors/:id', authenticate, requireAdmin, async (req, res) => {
       [date, in_time, out_time || null, name, coming_from, company, location, phone_number, purpose, person_to_meet, scheduled, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Visitor not found' });
+    await bqInsertVisitor(result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
@@ -797,6 +809,9 @@ app.patch('/visitors/:id/out-time', authenticate, async (req, res) => {
       [out_time, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Visitor not found' });
+    // Sync full row to BigQuery
+    const fullRow = await pool.query('SELECT * FROM visitors WHERE id=$1', [id]);
+    if (fullRow.rows.length > 0) await bqInsertVisitor(fullRow.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
@@ -861,8 +876,8 @@ app.post('/consignment', async (req, res) => {
     await pool.query('UPDATE consignments SET gp_number = $1 WHERE id = $2', [gpNumber, row.id]);
     row.gp_number = gpNumber;
 
-    // BigQuery real-time insert (fire-and-forget)
-    bqInsertConsignment(row);
+    // BigQuery real-time insert
+    await bqInsertConsignment(row);
 
     res.json(row);
   } catch (err) {
@@ -923,6 +938,7 @@ app.put('/consignments/:id', authenticate, requireAdmin, async (req, res) => {
       [date, type, document_number, document_type, in_time, vehicle_number, driver_contact, qty, package_type, comment, security_name, location, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Consignment not found' });
+    await bqInsertConsignment(result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);

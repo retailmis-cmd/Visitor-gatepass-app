@@ -29,7 +29,7 @@ try {
 const bqInsertVisitor = async (row) => {
   if (!bigquery) return;
   try {
-    const date = row.date ? String(row.date).slice(0, 10) : null;
+    const dateStr = row.date ? String(row.date).slice(0, 10) : null;
     const out_time = row.out_time ? String(row.out_time).slice(0, 5) : null;
     await bigquery.query({
       query: `MERGE \`${BQ_PROJECT}.${BQ_DATASET}.visitors\` T
@@ -43,23 +43,26 @@ const bqInsertVisitor = async (row) => {
           (id,date,visitor_id,name,coming_from,company,location,phone_number,purpose,person_to_meet,scheduled,in_time,out_time)
           VALUES(@id,@date,@visitor_id,@name,@coming_from,@company,@location,@phone_number,@purpose,@person_to_meet,@scheduled,@in_time,@out_time)`,
       params: {
-        id: row.id, date, visitor_id: row.visitor_id || null, name: row.name || null,
+        id: row.id, date: dateStr, visitor_id: row.visitor_id || null, name: row.name || null,
         coming_from: row.coming_from || null, company: row.company || null,
         location: row.location || null, phone_number: row.phone_number || null,
         purpose: row.purpose || null, person_to_meet: row.person_to_meet || null,
         scheduled: row.scheduled || null, in_time: row.in_time || null, out_time,
       },
+      types: { id: 'INT64', date: 'DATE' },
     });
     console.log(`BQ: visitor ${row.visitor_id} upserted`);
   } catch (err) {
-    console.error('BQ visitor upsert failed:', err.message);
+    const detail = err.errors ? JSON.stringify(err.errors) : err.message;
+    console.error('BQ visitor upsert failed:', detail);
+    throw err; // re-throw so caller can log/respond
   }
 };
 
 const bqInsertConsignment = async (row) => {
   if (!bigquery) return;
   try {
-    const date = row.date ? String(row.date).slice(0, 10) : null;
+    const dateStr = row.date ? String(row.date).slice(0, 10) : null;
     await bigquery.query({
       query: `MERGE \`${BQ_PROJECT}.${BQ_DATASET}.consignments\` T
         USING (SELECT @id AS id) S ON T.id = S.id
@@ -72,17 +75,20 @@ const bqInsertConsignment = async (row) => {
           (id,date,gp_number,type,document_number,document_type,in_time,vehicle_number,driver_contact,qty,package_type,comment,security_name,location)
           VALUES(@id,@date,@gp_number,@type,@document_number,@document_type,@in_time,@vehicle_number,@driver_contact,@qty,@package_type,@comment,@security_name,@location)`,
       params: {
-        id: row.id, date, gp_number: row.gp_number || null, type: row.type || null,
+        id: row.id, date: dateStr, gp_number: row.gp_number || null, type: row.type || null,
         document_number: row.document_number || null, document_type: row.document_type || null,
         in_time: row.in_time || null, vehicle_number: row.vehicle_number || null,
         driver_contact: row.driver_contact || null, qty: row.qty ? String(row.qty) : null,
         package_type: row.package_type || null, comment: row.comment || null,
         security_name: row.security_name || null, location: row.location || null,
       },
+      types: { id: 'INT64', date: 'DATE' },
     });
     console.log(`BQ: consignment ${row.gp_number} upserted`);
   } catch (err) {
-    console.error('BQ consignment upsert failed:', err.message);
+    const detail = err.errors ? JSON.stringify(err.errors) : err.message;
+    console.error('BQ consignment upsert failed:', detail);
+    throw err;
   }
 };
 
@@ -345,13 +351,26 @@ app.get('/health', async (req, res) => {
 // ================= BIGQUERY DEBUG =================
 app.get('/bigquery-debug', async (req, res) => {
   if (!bigquery) return res.json({ configured: false, reason: 'GOOGLE_SERVICE_ACCOUNT_JSON not set or invalid' });
+  const result = { configured: true, project: BQ_PROJECT };
   try {
     const [datasets] = await bigquery.getDatasets();
-    const datasetNames = datasets.map(d => d.id);
-    res.json({ configured: true, project: BQ_PROJECT, datasets: datasetNames });
+    result.datasets = datasets.map(d => d.id);
   } catch (err) {
-    res.json({ configured: true, project: BQ_PROJECT, error: err.message });
+    result.datasets_error = err.message;
   }
+  try {
+    const [rows] = await bigquery.query(`SELECT COUNT(*) as cnt FROM \`${BQ_PROJECT}.${BQ_DATASET}.visitors\``);
+    result.visitors_count = rows[0].cnt;
+  } catch (err) {
+    result.visitors_error = err.message;
+  }
+  try {
+    const [rows] = await bigquery.query(`SELECT COUNT(*) as cnt FROM \`${BQ_PROJECT}.${BQ_DATASET}.consignments\``);
+    result.consignments_count = rows[0].cnt;
+  } catch (err) {
+    result.consignments_error = err.message;
+  }
+  res.json(result);
 });
 
 // ================= BIGQUERY DAILY SYNC =================
@@ -730,7 +749,7 @@ app.post('/visitor', async (req, res) => {
     }
 
     // BigQuery real-time insert
-    await bqInsertVisitor(row);
+    try { await bqInsertVisitor(row); } catch (bqErr) { console.error('BQ visitor failed:', bqErr.message); }
 
     res.json(row);
   } catch (err) {
@@ -877,7 +896,7 @@ app.post('/consignment', async (req, res) => {
     row.gp_number = gpNumber;
 
     // BigQuery real-time insert
-    await bqInsertConsignment(row);
+    try { await bqInsertConsignment(row); } catch (bqErr) { console.error('BQ consignment failed:', bqErr.message); }
 
     res.json(row);
   } catch (err) {

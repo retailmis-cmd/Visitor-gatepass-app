@@ -140,18 +140,36 @@ const sendWhatsAppNotification = async ({
 app.get('/test-whatsapp', async (req, res) => {
   const phone = req.query.phone;
   if (!phone) return res.json({ error: 'Pass ?phone=91XXXXXXXXXX' });
-  console.log(`Test WhatsApp — INSTANCE: ${GREENAPI_INSTANCE || 'NOT SET'}, TOKEN: ${GREENAPI_TOKEN ? 'SET' : 'NOT SET'}, phone: ${phone}`);
-  try {
-    await sendWhatsAppNotification({
-      toPhone: phone,
-      visitorName: 'Test Visitor',
-      company: 'Test Co',
-      personToMeet: 'Test Person',
-      purpose: 'Testing',
-      location: 'Test Location',
-      inTime: new Date().toTimeString().slice(0, 5),
+
+  const instanceSet = !!GREENAPI_INSTANCE;
+  const tokenSet = !!GREENAPI_TOKEN;
+
+  if (!instanceSet || !tokenSet) {
+    return res.json({
+      error: 'Green API credentials not configured',
+      GREENAPI_INSTANCE_ID: instanceSet ? 'SET' : 'NOT SET',
+      GREENAPI_TOKEN: tokenSet ? 'SET' : 'NOT SET',
     });
-    res.json({ status: 'Attempted — check Render logs for result' });
+  }
+
+  try {
+    const url = `https://api.green-api.com/waInstance${GREENAPI_INSTANCE}/sendMessage/${GREENAPI_TOKEN}`;
+    let normalizedPhone = String(phone).replace(/\D/g, '');
+    if (normalizedPhone.length === 10) normalizedPhone = '91' + normalizedPhone;
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: `${normalizedPhone}@c.us`, message: 'Test message from Visitor App' }),
+    });
+    const data = await resp.json();
+    return res.json({
+      GREENAPI_INSTANCE_ID: 'SET',
+      GREENAPI_TOKEN: 'SET',
+      phone: normalizedPhone,
+      greenApiResponse: data,
+      success: !!data.idMessage,
+    });
   } catch (err) {
     res.json({ error: err.message });
   }

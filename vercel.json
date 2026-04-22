@@ -25,6 +25,7 @@
     { "source": "/auth/:path*",         "destination": "/api/index.js" },
     { "source": "/test-whatsapp",       "destination": "/api/index.js" },
     { "source": "/whatsapp-keepalive",  "destination": "/api/index.js" },
+    { "source": "/bigquery-sync",       "destination": "/api/index.js" },
     { "source": "/(.*)",                "destination": "/index.html" }
   ]
 }

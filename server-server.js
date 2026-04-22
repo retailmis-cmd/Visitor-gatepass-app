@@ -6,6 +6,74 @@ const pool = require('./db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const { BigQuery } = require('@google-cloud/bigquery');
+
+// ================= BIGQUERY =================
+let bigquery = null;
+const BQ_PROJECT = 'bcivpl-store-level';
+const BQ_DATASET = 'visitor_app';
+
+try {
+  const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (serviceAccountJson) {
+    const credentials = JSON.parse(serviceAccountJson);
+    bigquery = new BigQuery({ projectId: BQ_PROJECT, credentials });
+    console.log('BigQuery client initialized');
+  } else {
+    console.log('GOOGLE_SERVICE_ACCOUNT_JSON not set — BigQuery disabled');
+  }
+} catch (err) {
+  console.error('BigQuery init failed:', err.message);
+}
+
+const bqInsertVisitor = async (row) => {
+  if (!bigquery) return;
+  try {
+    await bigquery.dataset(BQ_DATASET).table('visitors').insert([{
+      id: row.id,
+      date: row.date ? String(row.date).slice(0, 10) : null,
+      visitor_id: row.visitor_id || null,
+      name: row.name || null,
+      coming_from: row.coming_from || null,
+      company: row.company || null,
+      location: row.location || null,
+      phone_number: row.phone_number || null,
+      purpose: row.purpose || null,
+      person_to_meet: row.person_to_meet || null,
+      scheduled: row.scheduled || null,
+      in_time: row.in_time || null,
+      out_time: row.out_time ? String(row.out_time).slice(0, 5) : null,
+    }]);
+    console.log(`BQ: visitor ${row.visitor_id} inserted`);
+  } catch (err) {
+    console.error('BQ visitor insert failed:', err.message);
+  }
+};
+
+const bqInsertConsignment = async (row) => {
+  if (!bigquery) return;
+  try {
+    await bigquery.dataset(BQ_DATASET).table('consignments').insert([{
+      id: row.id,
+      date: row.date ? String(row.date).slice(0, 10) : null,
+      gp_number: row.gp_number || null,
+      type: row.type || null,
+      document_number: row.document_number || null,
+      document_type: row.document_type || null,
+      in_time: row.in_time || null,
+      vehicle_number: row.vehicle_number || null,
+      driver_contact: row.driver_contact || null,
+      qty: row.qty ? String(row.qty) : null,
+      package_type: row.package_type || null,
+      comment: row.comment || null,
+      security_name: row.security_name || null,
+      location: row.location || null,
+    }]);
+    console.log(`BQ: consignment ${row.gp_number} inserted`);
+  } catch (err) {
+    console.error('BQ consignment insert failed:', err.message);
+  }
+};
 
 const JWT_SECRET = process.env.JWT_SECRET || 'visitor_app_jwt_secret_change_in_production';
 
@@ -261,6 +329,72 @@ const sendOtpEmail = async (to, otp) => {
 // ================= HEALTH =================
 app.get('/health', async (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// ================= BIGQUERY DAILY SYNC =================
+// Triggered by cron-job.org every night at midnight
+// Syncs yesterday's visitors and consignments to BigQuery
+app.get('/bigquery-sync', async (req, res) => {
+  if (!bigquery) return res.json({ status: 'skipped', reason: 'BigQuery not configured' });
+  try {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().slice(0, 10);
+
+    // Sync visitors
+    const vResult = await pool.query(
+      `SELECT id, date, visitor_id, name, coming_from, company, location, phone_number,
+              purpose, person_to_meet, scheduled, in_time, out_time
+       FROM visitors WHERE DATE(date) = $1`, [dateStr]
+    );
+    if (vResult.rows.length > 0) {
+      // Delete existing rows for this date to avoid duplicates
+      await bigquery.dataset(BQ_DATASET).table('visitors').query(
+        `DELETE FROM \`${BQ_PROJECT}.${BQ_DATASET}.visitors\` WHERE date = '${dateStr}'`
+      ).catch(() => {}); // ignore if table empty
+      const vRows = vResult.rows.map(r => ({
+        id: r.id, date: dateStr, visitor_id: r.visitor_id || null,
+        name: r.name || null, coming_from: r.coming_from || null,
+        company: r.company || null, location: r.location || null,
+        phone_number: r.phone_number || null, purpose: r.purpose || null,
+        person_to_meet: r.person_to_meet || null, scheduled: r.scheduled || null,
+        in_time: r.in_time || null,
+        out_time: r.out_time ? String(r.out_time).slice(0, 5) : null,
+      }));
+      await bigquery.dataset(BQ_DATASET).table('visitors').insert(vRows);
+    }
+
+    // Sync consignments
+    const cResult = await pool.query(
+      `SELECT id, date, gp_number, type, document_number, document_type, in_time,
+              vehicle_number, driver_contact, qty, package_type, comment, security_name, location
+       FROM consignments WHERE DATE(date) = $1`, [dateStr]
+    );
+    if (cResult.rows.length > 0) {
+      await bigquery.dataset(BQ_DATASET).table('consignments').query(
+        `DELETE FROM \`${BQ_PROJECT}.${BQ_DATASET}.consignments\` WHERE date = '${dateStr}'`
+      ).catch(() => {});
+      const cRows = cResult.rows.map(r => ({
+        id: r.id, date: dateStr, gp_number: r.gp_number || null,
+        type: r.type || null, document_number: r.document_number || null,
+        document_type: r.document_type || null, in_time: r.in_time || null,
+        vehicle_number: r.vehicle_number || null, driver_contact: r.driver_contact || null,
+        qty: r.qty ? String(r.qty) : null, package_type: r.package_type || null,
+        comment: r.comment || null, security_name: r.security_name || null,
+        location: r.location || null,
+      }));
+      await bigquery.dataset(BQ_DATASET).table('consignments').insert(cRows);
+    }
+
+    res.json({
+      status: 'ok', date: dateStr,
+      visitors_synced: vResult.rows.length,
+      consignments_synced: cResult.rows.length,
+    });
+  } catch (err) {
+    console.error('BQ sync error:', err.message);
+    res.status(500).json({ status: 'error', error: err.message });
+  }
 });
 
 // ================= AUTH =================
@@ -567,6 +701,9 @@ app.post('/visitor', async (req, res) => {
       console.error('Notification failed:', notifErr.message);
     }
 
+    // BigQuery real-time insert (fire-and-forget)
+    bqInsertVisitor(row);
+
     res.json(row);
   } catch (err) {
     console.error(err);
@@ -706,6 +843,9 @@ app.post('/consignment', async (req, res) => {
     const gpNumber = `BCNM-${String(row.id).padStart(4, '0')}`;
     await pool.query('UPDATE consignments SET gp_number = $1 WHERE id = $2', [gpNumber, row.id]);
     row.gp_number = gpNumber;
+
+    // BigQuery real-time insert (fire-and-forget)
+    bqInsertConsignment(row);
 
     res.json(row);
   } catch (err) {

@@ -65,8 +65,16 @@
     id SERIAL PRIMARY KEY,
     category TEXT NOT NULL,
     value TEXT NOT NULL,
+    phone_number TEXT,
+    whatsapp_apikey TEXT,
+    email TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- Migration: add columns if they don't exist (safe to run on existing DB)
+  ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS phone_number TEXT;
+  ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS whatsapp_apikey TEXT;
+  ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS email TEXT;
 
   -- ============================================================
   -- VISITORS

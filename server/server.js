@@ -607,6 +607,82 @@ app.put('/admin/users/:id/locations', authenticate, requireAdmin, async (req, re
 });
 
 
+/* ================= VISITOR NEXT ID ================= */
+
+app.get('/visitors/next-id', authenticate, async (req, res) => {
+  try {
+    const r = await pool.query('SELECT COALESCE(MAX(id), 0) + 1 AS n FROM visitors');
+    const num = String(r.rows[0].n).padStart(4, '0');
+    res.json({ visitorId: `BCNMV-${num}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch next ID' });
+  }
+});
+
+
+/* ================= DROPDOWN OPTIONS ================= */
+
+app.get('/dropdown-options', authenticate, async (req, res) => {
+  try {
+    const { category } = req.query;
+    const result = category
+      ? await pool.query('SELECT id, value, phone_number, whatsapp_apikey, email FROM dropdown_options WHERE category = $1 ORDER BY value ASC', [category])
+      : await pool.query('SELECT id, category, value, phone_number, whatsapp_apikey, email FROM dropdown_options ORDER BY category, value ASC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch dropdown options' });
+  }
+});
+
+app.post('/admin/dropdown-options', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { category, value, phone_number, whatsapp_apikey, email } = req.body;
+    if (!category || !value || !value.trim()) return res.status(400).json({ error: 'Category and value are required' });
+    const result = await pool.query(
+      'INSERT INTO dropdown_options (category, value, phone_number, whatsapp_apikey, email) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [category, value.trim(), phone_number ? phone_number.trim() : null, whatsapp_apikey ? whatsapp_apikey.trim() : null, email ? email.trim() : null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Option already exists' });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create option' });
+  }
+});
+
+app.put('/admin/dropdown-options/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    const { phone_number, email } = req.body;
+    const result = await pool.query(
+      'UPDATE dropdown_options SET phone_number = $1, email = $2 WHERE id = $3 RETURNING *',
+      [phone_number ? phone_number.trim() : null, email ? email.trim() : null, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Option not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update option' });
+  }
+});
+
+app.delete('/admin/dropdown-options/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    const result = await pool.query('DELETE FROM dropdown_options WHERE id = $1 RETURNING *', [id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Option not found' });
+    res.json({ message: 'Option deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete option' });
+  }
+});
+
+
 /* ================= 404 ================= */
 
 console.log("Routes added");

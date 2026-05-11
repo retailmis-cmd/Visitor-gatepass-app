@@ -1121,8 +1121,8 @@ app.get('/dropdown-options', authenticate, async (req, res) => {
   try {
     const { category } = req.query;
     const result = category
-      ? await pool.query('SELECT id, value, phone_number, whatsapp_apikey FROM dropdown_options WHERE category = $1 ORDER BY value ASC', [category])
-      : await pool.query('SELECT id, category, value, phone_number, whatsapp_apikey FROM dropdown_options ORDER BY category, value ASC');
+      ? await pool.query('SELECT id, value, phone_number, whatsapp_apikey, email FROM dropdown_options WHERE category = $1 ORDER BY value ASC', [category])
+      : await pool.query('SELECT id, category, value, phone_number, whatsapp_apikey, email FROM dropdown_options ORDER BY category, value ASC');
     res.json(result.rows);
   } catch (err) {
     console.error(err);

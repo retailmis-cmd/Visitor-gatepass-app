@@ -7,11 +7,11 @@ const pool = process.env.DATABASE_URL
       ssl: { rejectUnauthorized: false },
     })
   : new Pool({
-      user: 'postgres',
-      password: '@5016041HhAa',
-      host: 'localhost',
-      port: 5432,
-      database: 'visitor_consignment_app',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD,
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      database: process.env.DB_NAME || 'visitor_consignment_app',
     });
 
 pool.on('error', (err) => {

@@ -1,0 +1,45 @@
+[
+  {
+    "vscodeRequestId": "request_a26f11bb-8d78-4431-a6d6-a6984b8dcd16",
+    "copilotRequestId": "5fcf1172-e7a1-4bf4-a5aa-ece8c27a76cf",
+    "toolIdEditMap": {
+      "tooluse_9IFAl4Pki3WGJhDRop2WMB": "7198708d-9bf5-41f3-8742-04058e1d2287",
+      "tooluse_dRzJjmN9cb2SuU4sN3okhf": "115f813e-15a0-4252-97f6-eff2a7241366"
+    }
+  },
+  {
+    "vscodeRequestId": "request_d9ab3180-8157-48c3-92a1-bf521b91be7a",
+    "agentId": "",
+    "toolIdEditMap": {
+      "tooluse_zBjXvkaSh3kxb7o0vqYlLE": "7366d458-3344-4219-86db-f0c714f048a4",
+      "tooluse_XusRP44e98T4nvvZAT71zl": "f564e3ec-1485-48ec-888b-10f2b562d6d1",
+      "tooluse_uA5RNnRBAQtTjXYhF3j7yE": "137291b3-024a-4d04-b6d2-abdde2069ea1",
+      "tooluse_Q93DnTWNElDi6nbwVz1KDX": "4ed021ee-05cb-4c4f-b9ff-cd7259136b5d",
+      "tooluse_NKYinEOJZz9DkLKhKYJ7mR": "6f6645c8-9a37-4cb9-9a85-f02b78dbe029",
+      "tooluse_u19lPXchFuSTUsichLZ1MA": "d249b4c3-a777-4224-90a7-ed74da78d46c",
+      "tooluse_Jhs5z2GuW1YAHlBc5k3Y5O": "7d3ad119-dea7-4cfb-ab5a-d8b494aaae91",
+      "tooluse_M0iH08RGL55cSVdyd0aidZ": "dc600318-42ad-4d07-9bc5-9a3b209c37e3",
+      "tooluse_eBtqGM3iGSpKV103t1Lbht": "524ca434-dc5d-4b4f-b0db-10d7c2acc744",
+      "tooluse_vp0HINOx2w2TG6wnwQbDwR": "a622f0ac-48af-41d5-adaa-40bf82030b94"
+    },
+    "copilotRequestId": "de604e77-f69c-4b3b-98c0-8998e7dc0eaf"
+  },
+  {
+    "vscodeRequestId": "request_4536f113-f29b-4601-bc3b-0c9722473dcc",
+    "agentId": "",
+    "toolIdEditMap": {},
+    "copilotRequestId": "98d34203-5857-46d0-9d38-5e9a35ee90c4"
+  },
+  {
+    "vscodeRequestId": "request_015c44da-a454-4fa0-82e9-13fa57efadde",
+    "agentId": "",
+    "toolIdEditMap": {},
+    "copilotRequestId": "8f1f7764-9b0b-40f6-866d-6838e87bdd57"
+  },
+  {
+    "vscodeRequestId": "request_ac96b182-e173-4311-8beb-5c666dc8792c",
+    "agentId": "",
+    "toolIdEditMap": {},
+    "copilotRequestId": "96d77a54-db4b-47f3-9757-861e6775bac2"
+  }
+]

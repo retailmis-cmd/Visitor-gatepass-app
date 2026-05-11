@@ -1,0 +1,36 @@
+id: 7b6367cd-0dcb-4d1d-8dad-28931ea85b94
+cwd: c:\Program Files\VSC (app building)\Visitor and consignment app
+summary: "Create a full-stack web application with the following requirements:\r
+
+  \r
+
+  TECH STACK:\r
+
+  - Backend: Node.js with Express\r
+
+  - Database: PostgreSQL using pg library\r
+
+  - Frontend: React (create-react-app)\r
+
+  \r
+
+  BACKEND REQUIREMENTS:\r
+
+  - Create an Express server running on port 5000\r
+
+  - Connect to PostgreSQL database named \"visitor_consignment_app\"\r
+
+  - Use a separate db.js file for database connection using Pool\r
+
+  \r
+
+  - Enable CORS and JSON parsing\r
+
+  - Use async/await and proper error handling\r
+
+  \r
+
+  DATABASE STRUCTURE..."
+summary_count: 0
+created_at: 2026-04-06T10:32:46.034Z
+updated_at: 2026-04-06T10:57:56.826Z

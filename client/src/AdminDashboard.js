@@ -44,6 +44,7 @@ export default function AdminDashboard({ user, token }) {
   // Create Location dialog
   const [locationDialog, setLocationDialog] = useState(false);
   const [newLocation, setNewLocation] = useState('');
+  const [newLocationPhotoMandatory, setNewLocationPhotoMandatory] = useState(true);
   const [locationError, setLocationError] = useState('');
 
   // Assign locations dialog
@@ -147,12 +148,13 @@ export default function AdminDashboard({ user, token }) {
       const res = await fetch(`${API_URL}/admin/locations`, {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({ name: newLocation.trim() }),
+        body: JSON.stringify({ name: newLocation.trim(), photo_mandatory: newLocationPhotoMandatory }),
       });
       const data = await res.json();
       if (!res.ok) { setLocationError(data.error || 'Failed to create location'); return; }
       setLocationDialog(false);
       setNewLocation('');
+      setNewLocationPhotoMandatory(true);
       fetchLocations();
       fetchUsers();
     } catch { setLocationError('Failed to create location'); }
@@ -407,12 +409,13 @@ export default function AdminDashboard({ user, token }) {
                   <TableRow>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>#</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Location Name</TableCell>
+                    <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Photo Capture</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {locations.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} align="center">No locations found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} align="center">No locations found.</TableCell></TableRow>
                   ) : locations.map((l) => (
                     <TableRow key={l.id} hover>
                       <TableCell>{l.id}</TableCell>
@@ -421,6 +424,17 @@ export default function AdminDashboard({ user, token }) {
                           <LocationOnIcon sx={{ color: '#ff8a00', fontSize: 18 }} />
                           <Typography>{l.name}</Typography>
                         </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={l.photo_mandatory ? 'Mandatory' : 'Optional'}
+                          size="small"
+                          sx={{
+                            bgcolor: l.photo_mandatory ? '#2e7d32' : '#555',
+                            color: '#fff',
+                            fontWeight: 600,
+                          }}
+                        />
                       </TableCell>
                       <TableCell>
                         <Tooltip title="Delete Location">
@@ -622,10 +636,23 @@ export default function AdminDashboard({ user, token }) {
               required
               placeholder="e.g. Warehouse B, Gate 2, Office HQ"
             />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={newLocationPhotoMandatory}
+                  onChange={(e) => setNewLocationPhotoMandatory(e.target.checked)}
+                  sx={{ color: '#ff8a00', '&.Mui-checked': { color: '#ff8a00' } }}
+                />
+              }
+              label="Photo capture is mandatory at this location"
+            />
+            <Typography variant="body2" sx={{ color: '#888', fontSize: '0.78rem', mt: -1 }}>
+              When checked, visitors at this location must have a photo taken before the form can be submitted.
+            </Typography>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLocationDialog(false)}>Cancel</Button>
+          <Button onClick={() => { setLocationDialog(false); setNewLocationPhotoMandatory(true); }}>Cancel</Button>
           <Button variant="contained" onClick={handleCreateLocation} sx={{ bgcolor: '#ff8a00' }}>Add Location</Button>
         </DialogActions>
       </Dialog>

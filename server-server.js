@@ -140,6 +140,8 @@ const otpStore = {};
     await pool.query(`ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS email VARCHAR;`);
     // Allow email to be NULL for user accounts (admins always have email)
     await pool.query(`ALTER TABLE users ALTER COLUMN email DROP NOT NULL;`);
+    // Add photo_mandatory flag to locations
+    await pool.query(`ALTER TABLE locations ADD COLUMN IF NOT EXISTS photo_mandatory BOOLEAN NOT NULL DEFAULT true;`);
   } catch (err) {
     console.error('Migration warning:', err.message);
   }
@@ -1011,9 +1013,13 @@ app.get('/admin/locations', authenticate, requireAdmin, async (req, res) => {
 
 app.post('/admin/locations', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, photo_mandatory } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Location name is required' });
-    const result = await pool.query('INSERT INTO locations (name) VALUES ($1) RETURNING *', [name.trim()]);
+    const photoMandatory = photo_mandatory !== undefined ? Boolean(photo_mandatory) : true;
+    const result = await pool.query(
+      'INSERT INTO locations (name, photo_mandatory) VALUES ($1, $2) RETURNING *',
+      [name.trim(), photoMandatory]
+    );
     res.status(201).json({ message: 'Location created', location: result.rows[0] });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Location already exists' });

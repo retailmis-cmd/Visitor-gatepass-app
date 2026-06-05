@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import {
   Box, Card, CardHeader, CardContent, TextField, MenuItem,
-  Button, Stack, Avatar, Autocomplete, IconButton, Tooltip,
+  Button, Stack, Avatar, Autocomplete, IconButton, Tooltip, Chip,
 } from '@mui/material';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -41,6 +41,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
   const [cameraOpen, setCameraOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [availableLocations, setAvailableLocations] = useState([]);
+  const [locationObjects, setLocationObjects] = useState([]); // full objects with photo_mandatory
   const [purposeOptions, setPurposeOptions] = useState([]);
   const [personOptions, setPersonOptions] = useState([]); // [{ value, phone_number }]
   const [personToMeetPhone, setPersonToMeetPhone] = useState('');
@@ -58,9 +59,16 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
         try {
           const res = await fetch(`${apiUrl}/locations`, { headers: authHeaders });
           const data = await res.json();
+          setLocationObjects(Array.isArray(data) ? data : []);
           setAvailableLocations(Array.isArray(data) ? data.map((l) => l.name) : []);
         } catch { setAvailableLocations([]); }
       } else if (user?.assignedLocations?.length > 0) {
+        // For non-admin users fetch full location objects to get photo_mandatory
+        try {
+          const res = await fetch(`${apiUrl}/locations`, { headers: authHeaders });
+          const data = await res.json();
+          setLocationObjects(Array.isArray(data) ? data : []);
+        } catch { setLocationObjects([]); }
         setAvailableLocations(user.assignedLocations);
         if (user.assignedLocations.length === 1) setLocation(user.assignedLocations[0]);
       }
@@ -130,7 +138,9 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
     if (!personToMeet.trim()) { alert('❌ Person to meet is required'); return; }
     if (!scheduled.trim()) { alert('❌ Scheduled status is required'); return; }
     if (!location.trim()) { alert('❌ Location is required'); return; }
-    if (!photo) { alert('❌ Photo is required'); return; }
+    const locationObj = locationObjects.find((l) => l.name === location);
+    const photoRequired = locationObj ? locationObj.photo_mandatory : true;
+    if (photoRequired && !photo) { alert('❌ Photo is required for this location'); return; }
     setSaving(true);
     try {
       const photoUrl = await uploadToCloudinary(photo);
@@ -166,7 +176,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
 
   return (
     <Card>
-      <CardHeader title="Add Visitor" subheader="Capture visitor details and mandatory webcam photo" />
+      <CardHeader title="Add Visitor" subheader="Capture visitor details for check-in" />
       <CardContent>
         <Box component="form" onSubmit={submit}>
           <Stack spacing={3}>
@@ -337,13 +347,30 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
               {availableLocations.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
             </TextField>
 
-            {/* Camera Section - MANDATORY */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <Button variant="contained" startIcon={<CameraAltIcon />} onClick={() => setCameraOpen((c) => !c)}>
-                {cameraOpen ? 'Close Camera' : photo ? 'Retake Photo' : 'Open Camera *'}
-              </Button>
-              {photo && (<Button variant="outlined" startIcon={<DeleteIcon />} onClick={() => { setPhoto(''); markDirty(); }}>Remove Photo</Button>)}
-            </Stack>
+            {/* Camera Section — mandatory or optional based on location */}
+            {(() => {
+              const locationObj = locationObjects.find((l) => l.name === location);
+              const photoRequired = locationObj ? locationObj.photo_mandatory : (location ? true : true);
+              return (
+                <>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                    <Button variant="contained" startIcon={<CameraAltIcon />} onClick={() => setCameraOpen((c) => !c)}>
+                      {cameraOpen ? 'Close Camera' : photo ? 'Retake Photo' : photoRequired ? 'Open Camera *' : 'Open Camera (Optional)'}
+                    </Button>
+                    {photo && (<Button variant="outlined" startIcon={<DeleteIcon />} onClick={() => { setPhoto(''); markDirty(); }}>Remove Photo</Button>)}
+                    {location && (
+                      <Tooltip title={photoRequired ? 'Photo is mandatory at this location' : 'Photo is optional at this location'}>
+                        <Chip
+                          size="small"
+                          label={photoRequired ? 'Photo Required' : 'Photo Optional'}
+                          sx={{ bgcolor: photoRequired ? '#2e7d32' : '#555', color: '#fff', fontWeight: 600, cursor: 'default' }}
+                        />
+                      </Tooltip>
+                    )}
+                  </Stack>
+                </>
+              );
+            })()}
 
             {cameraOpen && (
               <Box className="camera-box" sx={{ position: 'relative' }}>

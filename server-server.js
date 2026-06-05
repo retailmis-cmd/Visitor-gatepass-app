@@ -120,6 +120,7 @@ const PORT = process.env.PORT || 5000;
 
 // ================= MIDDLEWARE =================
 app.use(cors());
+app.options('*', cors()); // Handle CORS preflight for all routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -473,6 +474,7 @@ app.post('/signup', (req, res) => {
 });
 
 // LOGIN
+app.get('/login', (req, res) => res.redirect(302, '/'));
 app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;

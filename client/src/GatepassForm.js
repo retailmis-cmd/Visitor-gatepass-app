@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import {
   Box, Card, CardHeader, CardContent, TextField, MenuItem,
-  Button, Stack, Avatar, IconButton, Tooltip,
+  Button, Stack, Avatar, IconButton, Tooltip, Chip,
 } from '@mui/material';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -45,6 +45,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
   const [cameraOpen, setCameraOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [availableLocations, setAvailableLocations] = useState([]);
+  const [locationObjects, setLocationObjects] = useState([]);
   const [securityOptions, setSecurityOptions] = useState([]);
   const webcamRef = useRef(null);
   const [facingMode, setFacingMode] = useState('user');
@@ -58,9 +59,15 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
         try {
           const res = await fetch(`${apiUrl}/locations`, { headers: authHeaders });
           const data = await res.json();
+          setLocationObjects(Array.isArray(data) ? data : []);
           setAvailableLocations(Array.isArray(data) ? data.map((l) => l.name) : []);
         } catch { setAvailableLocations([]); }
       } else if (user?.assignedLocations?.length > 0) {
+        try {
+          const res = await fetch(`${apiUrl}/locations`, { headers: authHeaders });
+          const data = await res.json();
+          setLocationObjects(Array.isArray(data) ? data : []);
+        } catch { setLocationObjects([]); }
         setAvailableLocations(user.assignedLocations);
         if (user.assignedLocations.length === 1) setLocation(user.assignedLocations[0]);
       }
@@ -122,12 +129,14 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     if (!qty.trim()) { alert('❌ Qty is required'); return; }
     if (!package_type.trim()) { alert('❌ Package Type is required'); return; }
     if (!comment.trim()) { alert('❌ Comment is required'); return; }
-    if (!photo) { alert('❌ Photo is required'); return; }
     if (!security_name.trim()) { alert('❌ Security Name is required'); return; }
+    const locationObj = locationObjects.find((l) => l.name === location);
+    const photoRequired = locationObj ? locationObj.photo_mandatory : true;
+    if (photoRequired && !photo) { alert('❌ Photo is required for this location'); return; }
 
     setSaving(true);
     try {
-      const photoUrl = await uploadToCloudinary(photo);
+      const photoUrl = photo ? await uploadToCloudinary(photo) : null;
       const res = await fetch(`${apiUrl}/consignment`, {
         method: 'POST',
         headers: authHeaders,
@@ -309,13 +318,28 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
               {availableLocations.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
             </TextField>
 
-            {/* Camera Section - MANDATORY */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <Button variant="contained" startIcon={<CameraAltIcon />} onClick={() => setCameraOpen((c) => !c)}>
-                {cameraOpen ? 'Close Camera' : photo ? 'Retake Photo' : 'Open Camera *'}
-              </Button>
-              {photo && (<Button variant="outlined" startIcon={<DeleteIcon />} onClick={() => { setPhoto(''); markDirty(); }}>Remove Photo</Button>)}
-            </Stack>
+            {/* Camera Section — mandatory or optional based on location */}
+            {(() => {
+              const locationObj = locationObjects.find((l) => l.name === location);
+              const photoRequired = locationObj ? locationObj.photo_mandatory : (location ? true : true);
+              return (
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                  <Button variant="contained" startIcon={<CameraAltIcon />} onClick={() => setCameraOpen((c) => !c)}>
+                    {cameraOpen ? 'Close Camera' : photo ? 'Retake Photo' : photoRequired ? 'Open Camera *' : 'Open Camera (Optional)'}
+                  </Button>
+                  {photo && (<Button variant="outlined" startIcon={<DeleteIcon />} onClick={() => { setPhoto(''); markDirty(); }}>Remove Photo</Button>)}
+                  {location && (
+                    <Tooltip title={photoRequired ? 'Photo is mandatory at this location' : 'Photo is optional at this location'}>
+                      <Chip
+                        size="small"
+                        label={photoRequired ? 'Photo Required' : 'Photo Optional'}
+                        sx={{ bgcolor: photoRequired ? '#2e7d32' : '#555', color: '#fff', fontWeight: 600, cursor: 'default' }}
+                      />
+                    </Tooltip>
+                  )}
+                </Stack>
+              );
+            })()}
 
             {cameraOpen && (
               <Box className="camera-box" sx={{ position: 'relative' }}>

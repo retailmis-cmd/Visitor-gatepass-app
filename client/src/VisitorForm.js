@@ -143,7 +143,7 @@ export default function VisitorForm({ apiUrl, onVisitorAdded, token, user, onDir
     if (photoRequired && !photo) { alert('❌ Photo is required for this location'); return; }
     setSaving(true);
     try {
-      const photoUrl = await uploadToCloudinary(photo);
+      const photoUrl = photo ? await uploadToCloudinary(photo) : null;
       const res = await fetch(`${apiUrl}/visitor`, {
         method: 'POST',
         headers: authHeaders,

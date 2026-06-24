@@ -705,7 +705,6 @@ app.post('/visitor', async (req, res) => {
     if (!person_to_meet) return res.status(400).json({ error: 'Person to meet is required' });
     if (!scheduled) return res.status(400).json({ error: 'Scheduled status is required' });
     if (!location) return res.status(400).json({ error: 'Location is required' });
-    if (!photo) return res.status(400).json({ error: 'Photo is required' });
 
     const insertResult = await pool.query(
       `INSERT INTO visitors 
@@ -904,7 +903,6 @@ app.post('/consignment', async (req, res) => {
     if (!qty) return res.status(400).json({ error: 'Qty is required' });
     if (!package_type) return res.status(400).json({ error: 'Package Type is required' });
     if (!comment) return res.status(400).json({ error: 'Comment is required' });
-    if (!photo) return res.status(400).json({ error: 'Photo is required' });
     if (!security_name) return res.status(400).json({ error: 'Security Name is required' });
 
     const insertResult = await pool.query(
@@ -1242,11 +1240,11 @@ app.get('/reports/consignments', async (req, res) => {
     console.log(`📊 Fetching consignments from ${startDate} to ${endDate}`);
 
     const result = await pool.query(
-      `SELECT id, date, gp_number, type, document_number, document_type, 
-              in_time, vehicle_number, driver_contact, qty, package_type, 
-              comment, security_name, photo
-       FROM consignments 
-       WHERE DATE(date) BETWEEN $1::DATE AND $2::DATE 
+      `SELECT id, date, gp_number, type, document_number, document_type,
+              in_time, vehicle_number, driver_contact, qty, package_type,
+              comment, security_name, location, photo
+       FROM consignments
+       WHERE DATE(date) BETWEEN $1::DATE AND $2::DATE
        ORDER BY date DESC`,
       [startDate, endDate]
     );

@@ -9,7 +9,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import FlipCameraIosIcon from '@mui/icons-material/FlipCameraIos';
 
 const documentTypes = ['DC', 'Tax invoice', 'LR', 'Manifest'];
-const packageTypes = ['Box', 'Bag', 'Carton', 'Pallet', 'Other'];
 
 const getToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const getCurrentTime = () => new Date().toTimeString().slice(0, 5);
@@ -35,6 +34,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
   const [document_type, setDocumentType] = useState('');
   const [in_time, setInTime] = useState(getCurrentTime());
   const [vehicle_number, setVehicleNumber] = useState('');
+  const [driver_name, setDriverName] = useState('');
   const [driver_contact, setDriverContact] = useState('');
   const [qty, setQty] = useState('');
   const [package_type, setPackageType] = useState('');
@@ -47,6 +47,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
   const [availableLocations, setAvailableLocations] = useState([]);
   const [locationObjects, setLocationObjects] = useState([]);
   const [securityOptions, setSecurityOptions] = useState([]);
+  const [packageTypes, setPackageTypes] = useState([]);
   const webcamRef = useRef(null);
   const [facingMode, setFacingMode] = useState('user');
 
@@ -78,14 +79,17 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [gpRes, secRes] = await Promise.all([
+        const [gpRes, secRes, pkgRes] = await Promise.all([
           fetch(`${apiUrl}/consignments/next-gp`, { headers: authHeaders }),
           fetch(`${apiUrl}/dropdown-options?category=security_name`, { headers: authHeaders }),
+          fetch(`${apiUrl}/dropdown-options?category=package_type`, { headers: authHeaders }),
         ]);
         const gpData = await gpRes.json();
         if (gpData.gpNumber) setGpNumberPreview(gpData.gpNumber);
         const secData = await secRes.json();
         if (Array.isArray(secData)) setSecurityOptions(secData.map((o) => o.value));
+        const pkgData = await pkgRes.json();
+        if (Array.isArray(pkgData)) setPackageTypes(pkgData.map((o) => o.value));
       } catch { /* silently fail */ }
     };
     fetchData();
@@ -103,6 +107,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     setDocumentType('');
     setInTime(getCurrentTime());
     setVehicleNumber('');
+    setDriverName('');
     setDriverContact('');
     setQty('');
     setPackageType('');
@@ -125,6 +130,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     if (!document_type.trim()) { alert('❌ Document Type is required'); return; }
     if (!in_time.trim()) { alert('❌ In-Time is required'); return; }
     if (!vehicle_number.trim()) { alert('❌ Vehicle Number is required'); return; }
+    if (!driver_name.trim()) { alert('❌ Driver Name is required'); return; }
     if (!driver_contact.trim()) { alert('❌ Driver Contact is required'); return; }
     if (!qty.trim()) { alert('❌ Qty is required'); return; }
     if (!package_type.trim()) { alert('❌ Package Type is required'); return; }
@@ -142,7 +148,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
         headers: authHeaders,
         body: JSON.stringify({
           date, type, document_number, document_type, in_time,
-          vehicle_number, driver_contact, qty, package_type,
+          vehicle_number, driver_name, driver_contact, qty, package_type,
           comment, photo: photoUrl, security_name, location,
         }),
       });
@@ -253,6 +259,16 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
                 required
               />
             </Stack>
+
+            {/* ROW 4b: Driver Name */}
+            <TextField
+              label="Driver Name"
+              value={driver_name}
+              onChange={(e) => { setDriverName(e.target.value); markDirty(); }}
+              placeholder="Enter driver name"
+              fullWidth
+              required
+            />
 
             {/* ROW 5: Qty and Package Type */}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

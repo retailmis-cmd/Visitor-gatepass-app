@@ -71,20 +71,20 @@ const bqInsertConsignment = async (row) => {
         WHEN MATCHED THEN UPDATE SET
           date=@date, gp_number=@gp_number, type=@type, document_number=@document_number,
           document_type=@document_type, in_time=@in_time, vehicle_number=@vehicle_number,
-          driver_contact=@driver_contact, qty=@qty, package_type=@package_type,
+          driver_name=@driver_name, driver_contact=@driver_contact, qty=@qty, package_type=@package_type,
           comment=@comment, security_name=@security_name, location=@location
         WHEN NOT MATCHED THEN INSERT
-          (id,date,gp_number,type,document_number,document_type,in_time,vehicle_number,driver_contact,qty,package_type,comment,security_name,location)
-          VALUES(@id,@date,@gp_number,@type,@document_number,@document_type,@in_time,@vehicle_number,@driver_contact,@qty,@package_type,@comment,@security_name,@location)`,
+          (id,date,gp_number,type,document_number,document_type,in_time,vehicle_number,driver_name,driver_contact,qty,package_type,comment,security_name,location)
+          VALUES(@id,@date,@gp_number,@type,@document_number,@document_type,@in_time,@vehicle_number,@driver_name,@driver_contact,@qty,@package_type,@comment,@security_name,@location)`,
       params: {
         id: row.id, date: bqDate, gp_number: row.gp_number || null, type: row.type || null,
         document_number: row.document_number || null, document_type: row.document_type || null,
         in_time: row.in_time || null, vehicle_number: row.vehicle_number || null,
-        driver_contact: row.driver_contact || null, qty: row.qty ? String(row.qty) : null,
+        driver_name: row.driver_name || null, driver_contact: row.driver_contact || null, qty: row.qty ? String(row.qty) : null,
         package_type: row.package_type || null, comment: row.comment || null,
         security_name: row.security_name || null, location: row.location || null,
       },
-      types: { id: 'INT64', gp_number: 'STRING', type: 'STRING', document_number: 'STRING', document_type: 'STRING', in_time: 'STRING', vehicle_number: 'STRING', driver_contact: 'STRING', qty: 'STRING', package_type: 'STRING', comment: 'STRING', security_name: 'STRING', location: 'STRING' },
+      types: { id: 'INT64', gp_number: 'STRING', type: 'STRING', document_number: 'STRING', document_type: 'STRING', in_time: 'STRING', vehicle_number: 'STRING', driver_name: 'STRING', driver_contact: 'STRING', qty: 'STRING', package_type: 'STRING', comment: 'STRING', security_name: 'STRING', location: 'STRING' },
     });
     console.log(`BQ: consignment ${row.gp_number} upserted`);
   } catch (err) {
@@ -142,6 +142,16 @@ const otpStore = {};
     await pool.query(`ALTER TABLE users ALTER COLUMN email DROP NOT NULL;`);
     // Add photo_mandatory flag to locations
     await pool.query(`ALTER TABLE locations ADD COLUMN IF NOT EXISTS photo_mandatory BOOLEAN NOT NULL DEFAULT true;`);
+    // Add driver_name to consignments
+    await pool.query(`ALTER TABLE consignments ADD COLUMN IF NOT EXISTS driver_name VARCHAR;`);
+    // Seed default package_type options if none exist yet, so the form keeps working
+    // now that Package Type is sourced from dropdown_options instead of a hardcoded list
+    const packageTypeCount = await pool.query(`SELECT COUNT(*) FROM dropdown_options WHERE category = 'package_type'`);
+    if (Number(packageTypeCount.rows[0].count) === 0) {
+      await pool.query(
+        `INSERT INTO dropdown_options (category, value) VALUES ('package_type', 'Box'), ('package_type', 'Bag'), ('package_type', 'Carton'), ('package_type', 'Pallet'), ('package_type', 'Other')`
+      );
+    }
   } catch (err) {
     console.error('Migration warning:', err.message);
   }
@@ -883,6 +893,7 @@ app.post('/consignment', async (req, res) => {
       document_type,
       in_time,
       vehicle_number,
+      driver_name,
       driver_contact,
       qty,
       package_type,
@@ -899,6 +910,7 @@ app.post('/consignment', async (req, res) => {
     if (!document_type) return res.status(400).json({ error: 'Document Type is required' });
     if (!in_time) return res.status(400).json({ error: 'In-Time is required' });
     if (!vehicle_number) return res.status(400).json({ error: 'Vehicle Number is required' });
+    if (!driver_name) return res.status(400).json({ error: 'Driver Name is required' });
     if (!driver_contact) return res.status(400).json({ error: 'Driver Contact is required' });
     if (!qty) return res.status(400).json({ error: 'Qty is required' });
     if (!package_type) return res.status(400).json({ error: 'Package Type is required' });
@@ -906,11 +918,11 @@ app.post('/consignment', async (req, res) => {
     if (!security_name) return res.status(400).json({ error: 'Security Name is required' });
 
     const insertResult = await pool.query(
-      `INSERT INTO consignments 
-       (date, type, document_number, document_type, in_time, vehicle_number, driver_contact, qty, package_type, comment, photo, security_name, location)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      `INSERT INTO consignments
+       (date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, photo, security_name, location)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING *`,
-      [date, type, document_number, document_type, in_time, vehicle_number, driver_contact, qty, package_type, comment, photo, security_name, location || null]
+      [date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, photo, security_name, location || null]
     );
     const row = insertResult.rows[0];
     const gpNumber = `BCNM-${String(row.id).padStart(4, '0')}`;
@@ -973,10 +985,10 @@ app.delete('/consignments/:id', authenticate, requireAdmin, async (req, res) => 
 app.put('/consignments/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { date, type, document_number, document_type, in_time, vehicle_number, driver_contact, qty, package_type, comment, security_name, location } = req.body;
+    const { date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, security_name, location } = req.body;
     const result = await pool.query(
-      `UPDATE consignments SET date=$1, type=$2, document_number=$3, document_type=$4, in_time=$5, vehicle_number=$6, driver_contact=$7, qty=$8, package_type=$9, comment=$10, security_name=$11, location=$12 WHERE id=$13 RETURNING *`,
-      [date, type, document_number, document_type, in_time, vehicle_number, driver_contact, qty, package_type, comment, security_name, location, id]
+      `UPDATE consignments SET date=$1, type=$2, document_number=$3, document_type=$4, in_time=$5, vehicle_number=$6, driver_name=$7, driver_contact=$8, qty=$9, package_type=$10, comment=$11, security_name=$12, location=$13 WHERE id=$14 RETURNING *`,
+      [date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, security_name, location, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Consignment not found' });
     await bqInsertConsignment(result.rows[0]);
@@ -1022,6 +1034,24 @@ app.post('/admin/locations', authenticate, requireAdmin, async (req, res) => {
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Location already exists' });
     res.status(500).json({ error: 'Failed to create location' });
+  }
+});
+
+app.put('/admin/locations/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, photo_mandatory } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Location name is required' });
+    const photoMandatory = photo_mandatory !== undefined ? Boolean(photo_mandatory) : true;
+    const result = await pool.query(
+      'UPDATE locations SET name = $1, photo_mandatory = $2 WHERE id = $3 RETURNING *',
+      [name.trim(), photoMandatory, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Location not found' });
+    res.json({ message: 'Location updated', location: result.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Location already exists' });
+    res.status(500).json({ error: 'Failed to update location' });
   }
 });
 
@@ -1241,7 +1271,7 @@ app.get('/reports/consignments', async (req, res) => {
 
     const result = await pool.query(
       `SELECT id, date, gp_number, type, document_number, document_type,
-              in_time, vehicle_number, driver_contact, qty, package_type,
+              in_time, vehicle_number, driver_name, driver_contact, qty, package_type,
               comment, security_name, location, photo
        FROM consignments
        WHERE DATE(date) BETWEEN $1::DATE AND $2::DATE

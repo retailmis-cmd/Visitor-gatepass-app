@@ -47,6 +47,13 @@ export default function AdminDashboard({ user, token }) {
   const [newLocationPhotoMandatory, setNewLocationPhotoMandatory] = useState(true);
   const [locationError, setLocationError] = useState('');
 
+  // Edit Location dialog
+  const [editLocationDialog, setEditLocationDialog] = useState(false);
+  const [editLocationTarget, setEditLocationTarget] = useState(null);
+  const [editLocationName, setEditLocationName] = useState('');
+  const [editLocationPhotoMandatory, setEditLocationPhotoMandatory] = useState(true);
+  const [editLocationError, setEditLocationError] = useState('');
+
   // Assign locations dialog
   const [assignDialog, setAssignDialog] = useState(false);
   const [assignUser, setAssignUser] = useState(null);
@@ -158,6 +165,32 @@ export default function AdminDashboard({ user, token }) {
       fetchLocations();
       fetchUsers();
     } catch { setLocationError('Failed to create location'); }
+  };
+
+  /* ---------- Edit Location ---------- */
+  const openEditLocation = (l) => {
+    setEditLocationTarget(l);
+    setEditLocationName(l.name);
+    setEditLocationPhotoMandatory(l.photo_mandatory);
+    setEditLocationError('');
+    setEditLocationDialog(true);
+  };
+
+  const handleUpdateLocation = async () => {
+    setEditLocationError('');
+    if (!editLocationName.trim()) { setEditLocationError('Location name is required.'); return; }
+    try {
+      const res = await fetch(`${API_URL}/admin/locations/${editLocationTarget.id}`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({ name: editLocationName.trim(), photo_mandatory: editLocationPhotoMandatory }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setEditLocationError(data.error || 'Failed to update location'); return; }
+      setEditLocationDialog(false);
+      fetchLocations();
+      fetchUsers();
+    } catch { setEditLocationError('Failed to update location'); }
   };
 
   /* ---------- Delete Location ---------- */
@@ -437,11 +470,18 @@ export default function AdminDashboard({ user, token }) {
                         />
                       </TableCell>
                       <TableCell>
-                        <Tooltip title="Delete Location">
-                          <IconButton size="small" color="error" onClick={() => handleDeleteLocation(l.id)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Stack direction="row" spacing={0.5}>
+                          <Tooltip title="Edit Location">
+                            <IconButton size="small" color="primary" onClick={() => openEditLocation(l)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete Location">
+                            <IconButton size="small" color="error" onClick={() => handleDeleteLocation(l.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -654,6 +694,37 @@ export default function AdminDashboard({ user, token }) {
         <DialogActions>
           <Button onClick={() => { setLocationDialog(false); setNewLocationPhotoMandatory(true); }}>Cancel</Button>
           <Button variant="contained" onClick={handleCreateLocation} sx={{ bgcolor: '#ff8a00' }}>Add Location</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* EDIT LOCATION DIALOG */}
+      <Dialog open={editLocationDialog} onClose={() => setEditLocationDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Edit Location</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} mt={1}>
+            {editLocationError && <Typography color="error" variant="body2">{editLocationError}</Typography>}
+            <TextField
+              label="Location Name"
+              value={editLocationName}
+              onChange={(e) => setEditLocationName(e.target.value)}
+              fullWidth
+              required
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={editLocationPhotoMandatory}
+                  onChange={(e) => setEditLocationPhotoMandatory(e.target.checked)}
+                  sx={{ color: '#ff8a00', '&.Mui-checked': { color: '#ff8a00' } }}
+                />
+              }
+              label="Photo capture is mandatory at this location"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditLocationDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleUpdateLocation} sx={{ bgcolor: '#ff8a00' }}>Save Changes</Button>
         </DialogActions>
       </Dialog>
 

@@ -29,8 +29,16 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
   const [selectedGatepass, setSelectedGatepass] = useState(null);
   const [editingGatepass, setEditingGatepass] = useState(null);
   const [editFields, setEditFields] = useState({});
+  const [packageTypes, setPackageTypes] = useState([]);
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+  useEffect(() => {
+    fetch(`${apiUrl}/dropdown-options?category=package_type`, { headers: authHeaders })
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setPackageTypes(data.map((o) => o.value)); })
+      .catch(() => {});
+  }, [apiUrl]);
 
   const fetchGatepasses = async () => {
     setLoading(true);
@@ -86,6 +94,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
       document_type: c.document_type || '',
       in_time: c.in_time || '',
       vehicle_number: c.vehicle_number || '',
+      driver_name: c.driver_name || '',
       driver_contact: c.driver_contact || '',
       qty: c.qty || '',
       package_type: c.package_type || '',
@@ -138,6 +147,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                 <TableHead sx={{ backgroundColor: '#ff8a00' }}>
                   <TableRow>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Date</TableCell>
+                    <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>GP Number</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Document No.</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Type</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>QTY</TableCell>
@@ -147,10 +157,11 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                 </TableHead>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} align="center">No Gatepasses found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} align="center">No Gatepasses found.</TableCell></TableRow>
                   ) : filtered.map((c) => (
                     <TableRow key={c.id} hover sx={{ '&:hover': { backgroundColor: '#fff8f0' } }}>
                       <TableCell sx={{ fontSize: '0.95rem', py: 1.5 }}>{formatDisplayDate(c.date)}</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#ff8a00' }}>{c.gp_number || '-'}</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{c.document_number || '-'}</TableCell>
                       <TableCell>
                         <Chip label={c.type || '-'} size="small" sx={{ bgcolor: c.type === 'INWARD' ? '#e8f5e9' : '#fff3e0', color: c.type === 'INWARD' ? '#388e3c' : '#e65100', fontWeight: 700 }} />
@@ -213,6 +224,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                   <Box><strong>Document Type:</strong> {selectedGatepass.document_type || '-'}</Box>
                   <Box><strong>In-Time:</strong> {selectedGatepass.in_time || '-'}</Box>
                   <Box><strong>Vehicle Number:</strong> {selectedGatepass.vehicle_number || '-'}</Box>
+                  <Box><strong>Driver Name:</strong> {selectedGatepass.driver_name || '-'}</Box>
                   <Box><strong>Driver Contact:</strong> {selectedGatepass.driver_contact || '-'}</Box>
                   <Box><strong>QTY:</strong> {selectedGatepass.qty || '-'}</Box>
                   <Box><strong>Package Type:</strong> {selectedGatepass.package_type || '-'}</Box>
@@ -272,16 +284,13 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
             <TextField label="In Time" type="time" value={editFields.in_time || ''} onChange={(e) => setEditFields({ ...editFields, in_time: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
             <Stack direction="row" spacing={2}>
               <TextField label="Vehicle Number" value={editFields.vehicle_number || ''} onChange={(e) => setEditFields({ ...editFields, vehicle_number: e.target.value.toUpperCase() })} fullWidth />
-              <TextField label="Driver Contact" value={editFields.driver_contact || ''} onChange={(e) => setEditFields({ ...editFields, driver_contact: e.target.value })} fullWidth />
+              <TextField label="Driver Name" value={editFields.driver_name || ''} onChange={(e) => setEditFields({ ...editFields, driver_name: e.target.value })} fullWidth />
             </Stack>
+            <TextField label="Driver Contact" value={editFields.driver_contact || ''} onChange={(e) => setEditFields({ ...editFields, driver_contact: e.target.value })} fullWidth />
             <Stack direction="row" spacing={2}>
               <TextField label="Qty" type="number" value={editFields.qty || ''} onChange={(e) => setEditFields({ ...editFields, qty: e.target.value })} fullWidth />
               <TextField label="Package Type" value={editFields.package_type || ''} onChange={(e) => setEditFields({ ...editFields, package_type: e.target.value })} select fullWidth>
-                <MenuItem value="Box">Box</MenuItem>
-                <MenuItem value="Bag">Bag</MenuItem>
-                <MenuItem value="Carton">Carton</MenuItem>
-                <MenuItem value="Pallet">Pallet</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
+                {packageTypes.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
               </TextField>
             </Stack>
             <TextField label="Comment" value={editFields.comment || ''} onChange={(e) => setEditFields({ ...editFields, comment: e.target.value })} fullWidth multiline rows={2} />

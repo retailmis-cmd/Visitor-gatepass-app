@@ -110,6 +110,7 @@
     document_type VARCHAR NOT NULL,
     in_time TIME NOT NULL,
     vehicle_number VARCHAR NOT NULL,
+    driver_name VARCHAR NOT NULL,
     driver_contact VARCHAR NOT NULL,
     qty INTEGER NOT NULL,
     package_type VARCHAR NOT NULL,

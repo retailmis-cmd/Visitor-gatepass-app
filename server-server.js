@@ -1083,7 +1083,7 @@ app.delete('/admin/locations/:id', authenticate, requireAdmin, async (req, res) 
 app.get('/admin/users', authenticate, requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT u.id, u.name, u.email, u.role, u.created_at,
+      `SELECT u.id, u.name, u.email, u.phone_number, u.role, u.created_at,
         COALESCE(json_agg(json_build_object('id', l.id, 'name', l.name)) FILTER (WHERE l.id IS NOT NULL), '[]') AS locations
        FROM users u
        LEFT JOIN user_locations ul ON ul.user_id = u.id
@@ -1132,6 +1132,54 @@ app.post('/admin/users', authenticate, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+app.put('/admin/users/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, email, phone_number, role, password, locationIds } = req.body;
+    const userRole = ['admin', 'user'].includes(role) ? role : 'user';
+
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+    if (userRole === 'admin' && !email) return res.status(400).json({ error: 'Email is required for admin accounts' });
+
+    const emailValue = email ? email.trim().toLowerCase() : null;
+    if (emailValue) {
+      const existing = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [emailValue, id]);
+      if (existing.rows.length > 0) return res.status(409).json({ error: 'A user with this email already exists' });
+    }
+
+    const normalizedPhone = phone_number ? normalizePhone(phone_number) : null;
+
+    if (password && password.trim()) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await pool.query(
+        'UPDATE users SET name=$1, email=$2, phone_number=$3, role=$4, password=$5, updated_at=CURRENT_TIMESTAMP WHERE id=$6',
+        [name.trim(), emailValue, normalizedPhone, userRole, hashedPassword, id]
+      );
+    } else {
+      await pool.query(
+        'UPDATE users SET name=$1, email=$2, phone_number=$3, role=$4, updated_at=CURRENT_TIMESTAMP WHERE id=$5',
+        [name.trim(), emailValue, normalizedPhone, userRole, id]
+      );
+    }
+
+    if (Array.isArray(locationIds)) {
+      await pool.query('DELETE FROM user_locations WHERE user_id = $1', [id]);
+      if (userRole === 'user') {
+        for (const locId of locationIds) {
+          await pool.query('INSERT INTO user_locations (user_id, location_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [id, locId]);
+        }
+      }
+    }
+
+    const result = await pool.query('SELECT id, name, email, phone_number, role FROM users WHERE id = $1', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ message: 'User updated', user: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update user' });
   }
 });
 

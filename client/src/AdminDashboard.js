@@ -54,10 +54,11 @@ export default function AdminDashboard({ user, token }) {
   const [editLocationPhotoMandatory, setEditLocationPhotoMandatory] = useState(true);
   const [editLocationError, setEditLocationError] = useState('');
 
-  // Assign locations dialog
-  const [assignDialog, setAssignDialog] = useState(false);
-  const [assignUser, setAssignUser] = useState(null);
-  const [assignLocationIds, setAssignLocationIds] = useState([]);
+  // Edit User dialog (full profile: name, email, phone, role, password, locations)
+  const [editUserDialog, setEditUserDialog] = useState(false);
+  const [editUserTarget, setEditUserTarget] = useState(null);
+  const [editUserFields, setEditUserFields] = useState({ name: '', email: '', phone_number: '', role: 'user', password: '', locationIds: [] });
+  const [editUserError, setEditUserError] = useState('');
 
   // Dropdown options
   const [dropdownCategory, setDropdownCategory] = useState('purpose');
@@ -205,31 +206,45 @@ export default function AdminDashboard({ user, token }) {
     } catch { alert('Failed to delete location'); }
   };
 
-  /* ---------- Assign Locations ---------- */
-  const openAssignDialog = (u) => {
-    setAssignUser(u);
-    setAssignLocationIds(u.locations.map((l) => l.id));
-    setAssignDialog(true);
+  /* ---------- Edit User ---------- */
+  const openEditUser = (u) => {
+    setEditUserTarget(u);
+    setEditUserFields({
+      name: u.name || '',
+      email: u.email || '',
+      phone_number: u.phone_number || '',
+      role: u.role,
+      password: '',
+      locationIds: u.locations.map((l) => l.id),
+    });
+    setEditUserError('');
+    setEditUserDialog(true);
   };
 
-  const handleAssignLocations = async () => {
+  const handleUpdateUser = async () => {
+    setEditUserError('');
+    if (!editUserFields.name.trim()) { setEditUserError('Name is required.'); return; }
+    if (editUserFields.role === 'admin' && !editUserFields.email.trim()) { setEditUserError('Email is required for admin accounts.'); return; }
     try {
-      const res = await fetch(`${API_URL}/admin/users/${assignUser.id}/locations`, {
+      const res = await fetch(`${API_URL}/admin/users/${editUserTarget.id}`, {
         method: 'PUT',
         headers: authHeaders,
-        body: JSON.stringify({ locationIds: assignLocationIds }),
+        body: JSON.stringify(editUserFields),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Update failed'); return; }
-      setAssignDialog(false);
+      if (!res.ok) { setEditUserError(data.error || 'Failed to update user'); return; }
+      setEditUserDialog(false);
       fetchUsers();
-    } catch { alert('Failed to update locations'); }
+    } catch { setEditUserError('Failed to update user'); }
   };
 
-  const toggleAssignLoc = (id) => {
-    setAssignLocationIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  const toggleEditUserLoc = (id) => {
+    setEditUserFields((prev) => ({
+      ...prev,
+      locationIds: prev.locationIds.includes(id)
+        ? prev.locationIds.filter((x) => x !== id)
+        : [...prev.locationIds, id],
+    }));
   };
 
   /* ---------- Dropdown Options ---------- */
@@ -405,13 +420,11 @@ export default function AdminDashboard({ user, token }) {
                         </TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={0.5}>
-                            {u.role !== 'admin' && (
-                              <Tooltip title="Assign Locations">
-                                <IconButton size="small" color="primary" onClick={() => openAssignDialog(u)}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+                            <Tooltip title="Edit User">
+                              <IconButton size="small" color="primary" onClick={() => openEditUser(u)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             {u.id !== user.id && (
                               <Tooltip title="Delete User">
                                 <IconButton size="small" color="error" onClick={() => handleDeleteUser(u.id)}>
@@ -728,35 +741,69 @@ export default function AdminDashboard({ user, token }) {
         </DialogActions>
       </Dialog>
 
-      {/* ASSIGN LOCATIONS DIALOG */}
-      <Dialog open={assignDialog} onClose={() => setAssignDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Assign Locations — {assignUser?.name}</DialogTitle>
+      {/* EDIT USER DIALOG */}
+      <Dialog open={editUserDialog} onClose={() => setEditUserDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit User — {editUserTarget?.name}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ opacity: 0.7, mb: 1 }}>
-            Select which locations this user can access:
-          </Typography>
-          {locations.length === 0 ? (
-            <Typography variant="body2" sx={{ opacity: 0.5 }}>No locations available.</Typography>
-          ) : (
-            <FormGroup>
-              {locations.map((l) => (
-                <FormControlLabel
-                  key={l.id}
-                  control={
-                    <Checkbox
-                      checked={assignLocationIds.includes(l.id)}
-                      onChange={() => toggleAssignLoc(l.id)}
-                    />
-                  }
-                  label={l.name}
-                />
-              ))}
-            </FormGroup>
-          )}
+          <Stack spacing={2} mt={1}>
+            {editUserError && <Typography color="error" variant="body2">{editUserError}</Typography>}
+            <TextField label="Full Name" value={editUserFields.name} onChange={(e) => setEditUserFields({ ...editUserFields, name: e.target.value })} fullWidth required />
+            <TextField
+              label={editUserFields.role === 'admin' ? 'Email' : 'Email (optional)'}
+              type="email"
+              value={editUserFields.email}
+              onChange={(e) => setEditUserFields({ ...editUserFields, email: e.target.value })}
+              fullWidth
+              required={editUserFields.role === 'admin'}
+              helperText={editUserFields.role === 'admin' ? 'Required for admin password reset' : ''}
+            />
+            <TextField label="Phone Number (optional)" value={editUserFields.phone_number} onChange={(e) => setEditUserFields({ ...editUserFields, phone_number: e.target.value })} fullWidth />
+            <TextField
+              label="New Password (leave blank to keep current)"
+              type="password"
+              value={editUserFields.password}
+              onChange={(e) => setEditUserFields({ ...editUserFields, password: e.target.value })}
+              fullWidth
+              autoComplete="new-password"
+            />
+            <TextField
+              label="Role"
+              select
+              value={editUserFields.role}
+              onChange={(e) => setEditUserFields({ ...editUserFields, role: e.target.value })}
+              fullWidth
+            >
+              <MenuItem value="user">User</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+            </TextField>
+            {editUserFields.role === 'user' && (
+              <Box>
+                <Typography variant="body2" fontWeight={600} mb={1}>Assigned Locations</Typography>
+                {locations.length === 0 ? (
+                  <Typography variant="body2" sx={{ opacity: 0.5 }}>No locations available. Add locations first.</Typography>
+                ) : (
+                  <FormGroup>
+                    {locations.map((l) => (
+                      <FormControlLabel
+                        key={l.id}
+                        control={
+                          <Checkbox
+                            checked={editUserFields.locationIds.includes(l.id)}
+                            onChange={() => toggleEditUserLoc(l.id)}
+                          />
+                        }
+                        label={l.name}
+                      />
+                    ))}
+                  </FormGroup>
+                )}
+              </Box>
+            )}
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAssignDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAssignLocations} sx={{ bgcolor: '#ff8a00' }}>Save</Button>
+          <Button onClick={() => setEditUserDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleUpdateUser} sx={{ bgcolor: '#ff8a00' }}>Save Changes</Button>
         </DialogActions>
       </Dialog>
 

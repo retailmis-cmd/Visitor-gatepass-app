@@ -101,6 +101,11 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
       comment: c.comment || '',
       security_name: c.security_name || '',
       location: c.location || '',
+      receiver_name: c.receiver_name || '',
+      receiver_contact: c.receiver_contact || '',
+      from_address: c.from_address || '',
+      sender_name: c.sender_name || '',
+      sender_contact: c.sender_contact || '',
     });
   };
 
@@ -230,6 +235,11 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                   <Box><strong>Package Type:</strong> {selectedGatepass.package_type || '-'}</Box>
                   <Box><strong>Comment:</strong> {selectedGatepass.comment || '-'}</Box>
                   <Box><strong>Security Name:</strong> {selectedGatepass.security_name || '-'}</Box>
+                  <Box><strong>Sender Name:</strong> {selectedGatepass.sender_name || '-'}</Box>
+                  <Box><strong>Sender Contact:</strong> {selectedGatepass.sender_contact || '-'}</Box>
+                  <Box><strong>From Address:</strong> {selectedGatepass.from_address || '-'}</Box>
+                  <Box><strong>Receiver Name:</strong> {selectedGatepass.receiver_name || '-'}</Box>
+                  <Box><strong>Receiver Contact:</strong> {selectedGatepass.receiver_contact || '-'}</Box>
                 </Box>
                 {selectedGatepass.photo && (
                   <Box sx={{ mt: 2 }}>
@@ -295,6 +305,15 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
             </Stack>
             <TextField label="Comment" value={editFields.comment || ''} onChange={(e) => setEditFields({ ...editFields, comment: e.target.value })} fullWidth multiline rows={2} />
             <TextField label="Security Name" value={editFields.security_name || ''} onChange={(e) => setEditFields({ ...editFields, security_name: e.target.value })} fullWidth />
+            <Stack direction="row" spacing={2}>
+              <TextField label="Sender Name" value={editFields.sender_name || ''} onChange={(e) => setEditFields({ ...editFields, sender_name: e.target.value })} fullWidth />
+              <TextField label="Sender Contact" value={editFields.sender_contact || ''} onChange={(e) => setEditFields({ ...editFields, sender_contact: e.target.value })} fullWidth />
+            </Stack>
+            <TextField label="From Address" value={editFields.from_address || ''} onChange={(e) => setEditFields({ ...editFields, from_address: e.target.value })} fullWidth multiline rows={2} />
+            <Stack direction="row" spacing={2}>
+              <TextField label="Receiver Name" value={editFields.receiver_name || ''} onChange={(e) => setEditFields({ ...editFields, receiver_name: e.target.value })} fullWidth />
+              <TextField label="Receiver Contact" value={editFields.receiver_contact || ''} onChange={(e) => setEditFields({ ...editFields, receiver_contact: e.target.value })} fullWidth />
+            </Stack>
           </Stack>
         </DialogContent>
         <DialogActions>

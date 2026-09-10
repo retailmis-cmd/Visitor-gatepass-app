@@ -144,6 +144,16 @@ const otpStore = {};
     await pool.query(`ALTER TABLE locations ADD COLUMN IF NOT EXISTS photo_mandatory BOOLEAN NOT NULL DEFAULT true;`);
     // Add driver_name to consignments
     await pool.query(`ALTER TABLE consignments ADD COLUMN IF NOT EXISTS driver_name VARCHAR;`);
+    // Add receiver/sender/address columns to consignments
+    await pool.query(`ALTER TABLE consignments ADD COLUMN IF NOT EXISTS receiver_name VARCHAR;`);
+    await pool.query(`ALTER TABLE consignments ADD COLUMN IF NOT EXISTS receiver_contact VARCHAR;`);
+    await pool.query(`ALTER TABLE consignments ADD COLUMN IF NOT EXISTS from_address VARCHAR;`);
+    await pool.query(`ALTER TABLE consignments ADD COLUMN IF NOT EXISTS sender_name VARCHAR;`);
+    await pool.query(`ALTER TABLE consignments ADD COLUMN IF NOT EXISTS sender_contact VARCHAR;`);
+    // Vehicle number, driver name and driver contact are no longer mandatory
+    await pool.query(`ALTER TABLE consignments ALTER COLUMN vehicle_number DROP NOT NULL;`);
+    await pool.query(`ALTER TABLE consignments ALTER COLUMN driver_name DROP NOT NULL;`);
+    await pool.query(`ALTER TABLE consignments ALTER COLUMN driver_contact DROP NOT NULL;`);
     // Seed default package_type options if none exist yet, so the form keeps working
     // now that Package Type is sourced from dropdown_options instead of a hardcoded list
     const packageTypeCount = await pool.query(`SELECT COUNT(*) FROM dropdown_options WHERE category = 'package_type'`);
@@ -901,6 +911,11 @@ app.post('/consignment', async (req, res) => {
       photo,
       security_name,
       location,
+      receiver_name,
+      receiver_contact,
+      from_address,
+      sender_name,
+      sender_contact,
     } = req.body;
 
     // Validation for mandatory fields
@@ -909,9 +924,6 @@ app.post('/consignment', async (req, res) => {
     if (!document_number) return res.status(400).json({ error: 'Document Number is required' });
     if (!document_type) return res.status(400).json({ error: 'Document Type is required' });
     if (!in_time) return res.status(400).json({ error: 'In-Time is required' });
-    if (!vehicle_number) return res.status(400).json({ error: 'Vehicle Number is required' });
-    if (!driver_name) return res.status(400).json({ error: 'Driver Name is required' });
-    if (!driver_contact) return res.status(400).json({ error: 'Driver Contact is required' });
     if (!qty) return res.status(400).json({ error: 'Qty is required' });
     if (!package_type) return res.status(400).json({ error: 'Package Type is required' });
     if (!comment) return res.status(400).json({ error: 'Comment is required' });
@@ -919,10 +931,10 @@ app.post('/consignment', async (req, res) => {
 
     const insertResult = await pool.query(
       `INSERT INTO consignments
-       (date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, photo, security_name, location)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       (date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, photo, security_name, location, receiver_name, receiver_contact, from_address, sender_name, sender_contact)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING *`,
-      [date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, photo, security_name, location || null]
+      [date, type, document_number, document_type, in_time, vehicle_number || null, driver_name || null, driver_contact || null, qty, package_type, comment, photo, security_name, location || null, receiver_name || null, receiver_contact || null, from_address || null, sender_name || null, sender_contact || null]
     );
     const row = insertResult.rows[0];
     const gpNumber = `BCNM-${String(row.id).padStart(4, '0')}`;
@@ -985,10 +997,10 @@ app.delete('/consignments/:id', authenticate, requireAdmin, async (req, res) => 
 app.put('/consignments/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, security_name, location } = req.body;
+    const { date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, security_name, location, receiver_name, receiver_contact, from_address, sender_name, sender_contact } = req.body;
     const result = await pool.query(
-      `UPDATE consignments SET date=$1, type=$2, document_number=$3, document_type=$4, in_time=$5, vehicle_number=$6, driver_name=$7, driver_contact=$8, qty=$9, package_type=$10, comment=$11, security_name=$12, location=$13 WHERE id=$14 RETURNING *`,
-      [date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, security_name, location, id]
+      `UPDATE consignments SET date=$1, type=$2, document_number=$3, document_type=$4, in_time=$5, vehicle_number=$6, driver_name=$7, driver_contact=$8, qty=$9, package_type=$10, comment=$11, security_name=$12, location=$13, receiver_name=$14, receiver_contact=$15, from_address=$16, sender_name=$17, sender_contact=$18 WHERE id=$19 RETURNING *`,
+      [date, type, document_number, document_type, in_time, vehicle_number || null, driver_name || null, driver_contact || null, qty, package_type, comment, security_name, location, receiver_name || null, receiver_contact || null, from_address || null, sender_name || null, sender_contact || null, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Consignment not found' });
     await bqInsertConsignment(result.rows[0]);
@@ -1272,7 +1284,8 @@ app.get('/reports/consignments', async (req, res) => {
     const result = await pool.query(
       `SELECT id, date, gp_number, type, document_number, document_type,
               in_time, vehicle_number, driver_name, driver_contact, qty, package_type,
-              comment, security_name, location, photo
+              comment, security_name, location, photo, receiver_name, receiver_contact,
+              from_address, sender_name, sender_contact
        FROM consignments
        WHERE DATE(date) BETWEEN $1::DATE AND $2::DATE
        ORDER BY date DESC`,

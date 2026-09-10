@@ -39,6 +39,11 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
   const [qty, setQty] = useState('');
   const [package_type, setPackageType] = useState('');
   const [comment, setComment] = useState('');
+  const [receiver_name, setReceiverName] = useState('');
+  const [receiver_contact, setReceiverContact] = useState('');
+  const [from_address, setFromAddress] = useState('');
+  const [sender_name, setSenderName] = useState('');
+  const [sender_contact, setSenderContact] = useState('');
   const [photo, setPhoto] = useState('');
   const [security_name, setSecurityName] = useState('');
   const [location, setLocation] = useState('');
@@ -112,6 +117,11 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     setQty('');
     setPackageType('');
     setComment('');
+    setReceiverName('');
+    setReceiverContact('');
+    setFromAddress('');
+    setSenderName('');
+    setSenderContact('');
     setPhoto('');
     setSecurityName('');
     setLocation(user?.assignedLocations?.length === 1 ? user.assignedLocations[0] : '');
@@ -129,9 +139,6 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     if (!document_number.trim()) { alert('❌ Document Number is required'); return; }
     if (!document_type.trim()) { alert('❌ Document Type is required'); return; }
     if (!in_time.trim()) { alert('❌ In-Time is required'); return; }
-    if (!vehicle_number.trim()) { alert('❌ Vehicle Number is required'); return; }
-    if (!driver_name.trim()) { alert('❌ Driver Name is required'); return; }
-    if (!driver_contact.trim()) { alert('❌ Driver Contact is required'); return; }
     if (!qty.trim()) { alert('❌ Qty is required'); return; }
     if (!package_type.trim()) { alert('❌ Package Type is required'); return; }
     if (!comment.trim()) { alert('❌ Comment is required'); return; }
@@ -150,6 +157,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
           date, type, document_number, document_type, in_time,
           vehicle_number, driver_name, driver_contact, qty, package_type,
           comment, photo: photoUrl, security_name, location,
+          receiver_name, receiver_contact, from_address, sender_name, sender_contact,
         }),
       });
       const text = await res.text();
@@ -247,7 +255,6 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
                 onChange={(e) => { setVehicleNumber(e.target.value.toUpperCase()); markDirty(); }}
                 placeholder="ENTER VEHICLE NUMBER"
                 fullWidth
-                required
                 inputProps={{ style: { textTransform: 'uppercase' } }}
               />
               <TextField
@@ -256,7 +263,6 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
                 onChange={(e) => { setDriverContact(e.target.value); markDirty(); }}
                 placeholder="Enter driver contact"
                 fullWidth
-                required
               />
             </Stack>
 
@@ -267,8 +273,54 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
               onChange={(e) => { setDriverName(e.target.value); markDirty(); }}
               placeholder="Enter driver name"
               fullWidth
-              required
             />
+
+            {/* ROW 4c: Sender Name and Sender Contact */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                label="Sender Name"
+                value={sender_name}
+                onChange={(e) => { setSenderName(e.target.value); markDirty(); }}
+                placeholder="Enter sender name"
+                fullWidth
+              />
+              <TextField
+                label="Sender Contact"
+                value={sender_contact}
+                onChange={(e) => { setSenderContact(e.target.value); markDirty(); }}
+                placeholder="Enter sender contact"
+                fullWidth
+              />
+            </Stack>
+
+            {/* ROW 4d: From Address */}
+            <TextField
+              label="From Address"
+              value={from_address}
+              onChange={(e) => { setFromAddress(e.target.value); markDirty(); }}
+              placeholder="Enter from address"
+              fullWidth
+              multiline
+              rows={2}
+            />
+
+            {/* ROW 4e: Receiver Name and Receiver Contact */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                label="Receiver Name"
+                value={receiver_name}
+                onChange={(e) => { setReceiverName(e.target.value); markDirty(); }}
+                placeholder="Enter receiver name"
+                fullWidth
+              />
+              <TextField
+                label="Receiver Contact"
+                value={receiver_contact}
+                onChange={(e) => { setReceiverContact(e.target.value); markDirty(); }}
+                placeholder="Enter receiver contact"
+                fullWidth
+              />
+            </Stack>
 
             {/* ROW 5: Qty and Package Type */}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

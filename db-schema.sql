@@ -76,6 +76,16 @@
   ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS whatsapp_apikey TEXT;
   ALTER TABLE dropdown_options ADD COLUMN IF NOT EXISTS email TEXT;
 
+  -- Migration: consignments receiver/sender fields, and relax old mandatory fields
+  ALTER TABLE consignments ADD COLUMN IF NOT EXISTS receiver_name VARCHAR;
+  ALTER TABLE consignments ADD COLUMN IF NOT EXISTS receiver_contact VARCHAR;
+  ALTER TABLE consignments ADD COLUMN IF NOT EXISTS from_address VARCHAR;
+  ALTER TABLE consignments ADD COLUMN IF NOT EXISTS sender_name VARCHAR;
+  ALTER TABLE consignments ADD COLUMN IF NOT EXISTS sender_contact VARCHAR;
+  ALTER TABLE consignments ALTER COLUMN vehicle_number DROP NOT NULL;
+  ALTER TABLE consignments ALTER COLUMN driver_name DROP NOT NULL;
+  ALTER TABLE consignments ALTER COLUMN driver_contact DROP NOT NULL;
+
   -- ============================================================
   -- VISITORS
   -- ============================================================
@@ -109,15 +119,20 @@
     document_number VARCHAR NOT NULL,
     document_type VARCHAR NOT NULL,
     in_time TIME NOT NULL,
-    vehicle_number VARCHAR NOT NULL,
-    driver_name VARCHAR NOT NULL,
-    driver_contact VARCHAR NOT NULL,
+    vehicle_number VARCHAR,
+    driver_name VARCHAR,
+    driver_contact VARCHAR,
     qty INTEGER NOT NULL,
     package_type VARCHAR NOT NULL,
     comment TEXT NOT NULL,
     photo TEXT NOT NULL,
     security_name VARCHAR NOT NULL,
     location TEXT,
+    receiver_name VARCHAR,
+    receiver_contact VARCHAR,
+    from_address VARCHAR,
+    sender_name VARCHAR,
+    sender_contact VARCHAR,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );

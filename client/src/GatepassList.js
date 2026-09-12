@@ -103,6 +103,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
       location: c.location || '',
       receiver_name: c.receiver_name || '',
       receiver_contact: c.receiver_contact || '',
+      receiver_address: c.receiver_address || '',
       from_address: c.from_address || '',
       sender_name: c.sender_name || '',
       sender_contact: c.sender_contact || '',
@@ -240,6 +241,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
                   <Box><strong>From Address:</strong> {selectedGatepass.from_address || '-'}</Box>
                   <Box><strong>Receiver Name:</strong> {selectedGatepass.receiver_name || '-'}</Box>
                   <Box><strong>Receiver Contact:</strong> {selectedGatepass.receiver_contact || '-'}</Box>
+                  <Box><strong>Receiver Address:</strong> {selectedGatepass.receiver_address || '-'}</Box>
                 </Box>
                 {selectedGatepass.photo && (
                   <Box sx={{ mt: 2 }}>
@@ -314,6 +316,7 @@ export default function GatepassList({ apiUrl, refresh, token, user }) {
               <TextField label="Receiver Name" value={editFields.receiver_name || ''} onChange={(e) => setEditFields({ ...editFields, receiver_name: e.target.value })} fullWidth />
               <TextField label="Receiver Contact" value={editFields.receiver_contact || ''} onChange={(e) => setEditFields({ ...editFields, receiver_contact: e.target.value })} fullWidth />
             </Stack>
+            <TextField label="Receiver Address" value={editFields.receiver_address || ''} onChange={(e) => setEditFields({ ...editFields, receiver_address: e.target.value })} fullWidth multiline rows={2} />
           </Stack>
         </DialogContent>
         <DialogActions>

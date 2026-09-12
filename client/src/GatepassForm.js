@@ -41,6 +41,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
   const [comment, setComment] = useState('');
   const [receiver_name, setReceiverName] = useState('');
   const [receiver_contact, setReceiverContact] = useState('');
+  const [receiver_address, setReceiverAddress] = useState('');
   const [from_address, setFromAddress] = useState('');
   const [sender_name, setSenderName] = useState('');
   const [sender_contact, setSenderContact] = useState('');
@@ -119,6 +120,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     setComment('');
     setReceiverName('');
     setReceiverContact('');
+    setReceiverAddress('');
     setFromAddress('');
     setSenderName('');
     setSenderContact('');
@@ -157,7 +159,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
           date, type, document_number, document_type, in_time,
           vehicle_number, driver_name, driver_contact, qty, package_type,
           comment, photo: photoUrl, security_name, location,
-          receiver_name, receiver_contact, from_address, sender_name, sender_contact,
+          receiver_name, receiver_contact, receiver_address, from_address, sender_name, sender_contact,
         }),
       });
       const text = await res.text();
@@ -321,6 +323,17 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
                 fullWidth
               />
             </Stack>
+
+            {/* ROW 4f: Receiver Address */}
+            <TextField
+              label="Receiver Address"
+              value={receiver_address}
+              onChange={(e) => { setReceiverAddress(e.target.value); markDirty(); }}
+              placeholder="Enter receiver address"
+              fullWidth
+              multiline
+              rows={2}
+            />
 
             {/* ROW 5: Qty and Package Type */}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

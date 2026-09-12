@@ -79,6 +79,7 @@
   -- Migration: consignments receiver/sender fields, and relax old mandatory fields
   ALTER TABLE consignments ADD COLUMN IF NOT EXISTS receiver_name VARCHAR;
   ALTER TABLE consignments ADD COLUMN IF NOT EXISTS receiver_contact VARCHAR;
+  ALTER TABLE consignments ADD COLUMN IF NOT EXISTS receiver_address VARCHAR;
   ALTER TABLE consignments ADD COLUMN IF NOT EXISTS from_address VARCHAR;
   ALTER TABLE consignments ADD COLUMN IF NOT EXISTS sender_name VARCHAR;
   ALTER TABLE consignments ADD COLUMN IF NOT EXISTS sender_contact VARCHAR;
@@ -130,6 +131,7 @@
     location TEXT,
     receiver_name VARCHAR,
     receiver_contact VARCHAR,
+    receiver_address VARCHAR,
     from_address VARCHAR,
     sender_name VARCHAR,
     sender_contact VARCHAR,

@@ -128,6 +128,28 @@ const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString()
 const normalizePhone = (v) => (v ? v.replace(/\D/g, '') : '');
 const isPhone = (v) => /^\+?[0-9][0-9\-\s().]{5,}$/.test(v);
 
+// Derives a short GP-number prefix from a location name, avoiding collisions
+// with prefixes already in use (e.g. "Banana club HO" -> "BCH", "Warehouse" -> "WAR").
+const generateLocationPrefix = (name, usedPrefixes) => {
+  const words = (name || '').trim().split(/\s+/).filter(Boolean);
+  let base;
+  if (words.length >= 2) {
+    base = words.map((w) => w[0]).join('').toUpperCase();
+  } else if (words.length === 1) {
+    base = words[0].slice(0, 3).toUpperCase();
+  } else {
+    base = 'LOC';
+  }
+  base = base.replace(/[^A-Z0-9]/g, '') || 'LOC';
+  let prefix = base;
+  let n = 2;
+  while (usedPrefixes.has(prefix)) {
+    prefix = `${base}${n}`;
+    n += 1;
+  }
+  return prefix;
+};
+
 // ================= OTP STORE =================
 const otpStore = {};
 
@@ -155,6 +177,20 @@ const otpStore = {};
     await pool.query(`ALTER TABLE consignments ALTER COLUMN vehicle_number DROP NOT NULL;`);
     await pool.query(`ALTER TABLE consignments ALTER COLUMN driver_name DROP NOT NULL;`);
     await pool.query(`ALTER TABLE consignments ALTER COLUMN driver_contact DROP NOT NULL;`);
+    // Per-location GP number prefix and running sequence
+    await pool.query(`ALTER TABLE locations ADD COLUMN IF NOT EXISTS gp_prefix VARCHAR;`);
+    await pool.query(`ALTER TABLE locations ADD COLUMN IF NOT EXISTS gp_seq INTEGER NOT NULL DEFAULT 0;`);
+    // Backfill gp_prefix for any location that doesn't have one yet
+    const locsNeedingPrefix = await pool.query(`SELECT id, name FROM locations WHERE gp_prefix IS NULL ORDER BY id ASC`);
+    if (locsNeedingPrefix.rows.length > 0) {
+      const existingPrefixes = await pool.query(`SELECT gp_prefix FROM locations WHERE gp_prefix IS NOT NULL`);
+      const usedPrefixes = new Set(existingPrefixes.rows.map((r) => r.gp_prefix));
+      for (const loc of locsNeedingPrefix.rows) {
+        const prefix = generateLocationPrefix(loc.name, usedPrefixes);
+        usedPrefixes.add(prefix);
+        await pool.query(`UPDATE locations SET gp_prefix = $1 WHERE id = $2`, [prefix, loc.id]);
+      }
+    }
     // Seed default package_type options if none exist yet, so the form keeps working
     // now that Package Type is sourced from dropdown_options instead of a hardcoded list
     const packageTypeCount = await pool.query(`SELECT COUNT(*) FROM dropdown_options WHERE category = 'package_type'`);
@@ -886,9 +922,15 @@ app.patch('/visitors/:id/out-time', authenticate, async (req, res) => {
 
 app.get('/consignments/next-gp', authenticate, async (req, res) => {
   try {
-    const r = await pool.query('SELECT COALESCE(MAX(id), 0) + 1 AS n FROM consignments');
-    const num = String(r.rows[0].n).padStart(4, '0');
-    res.json({ gpNumber: `BCNM-${num}` });
+    const { location } = req.query;
+    if (!location) return res.json({ gpNumber: null });
+
+    const locResult = await pool.query('SELECT gp_prefix, gp_seq FROM locations WHERE name = $1', [location]);
+    if (locResult.rows.length === 0) return res.json({ gpNumber: null });
+
+    const { gp_prefix, gp_seq } = locResult.rows[0];
+    const num = String(gp_seq + 1).padStart(4, '0');
+    res.json({ gpNumber: `${gp_prefix}-${num}` });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch next GP number' });
@@ -930,16 +972,25 @@ app.post('/consignment', async (req, res) => {
     if (!package_type) return res.status(400).json({ error: 'Package Type is required' });
     if (!comment) return res.status(400).json({ error: 'Comment is required' });
     if (!security_name) return res.status(400).json({ error: 'Security Name is required' });
+    if (!location) return res.status(400).json({ error: 'Location is required' });
 
     const insertResult = await pool.query(
       `INSERT INTO consignments
        (date, type, document_number, document_type, in_time, vehicle_number, driver_name, driver_contact, qty, package_type, comment, photo, security_name, location, receiver_name, receiver_contact, receiver_address, from_address, sender_name, sender_contact)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        RETURNING *`,
-      [date, type, document_number, document_type, in_time, vehicle_number || null, driver_name || null, driver_contact || null, qty, package_type, comment, photo, security_name, location || null, receiver_name || null, receiver_contact || null, receiver_address || null, from_address || null, sender_name || null, sender_contact || null]
+      [date, type, document_number, document_type, in_time, vehicle_number || null, driver_name || null, driver_contact || null, qty, package_type, comment, photo, security_name, location, receiver_name || null, receiver_contact || null, receiver_address || null, from_address || null, sender_name || null, sender_contact || null]
     );
     const row = insertResult.rows[0];
-    const gpNumber = `BCNM-${String(row.id).padStart(4, '0')}`;
+
+    // Assign a per-location sequential GP number: <location prefix>-0001, 0002, ...
+    const locSeqResult = await pool.query(
+      'UPDATE locations SET gp_seq = gp_seq + 1 WHERE name = $1 RETURNING gp_prefix, gp_seq',
+      [location]
+    );
+    const gpNumber = locSeqResult.rows.length > 0
+      ? `${locSeqResult.rows[0].gp_prefix}-${String(locSeqResult.rows[0].gp_seq).padStart(4, '0')}`
+      : `GP-${String(row.id).padStart(4, '0')}`;
     await pool.query('UPDATE consignments SET gp_number = $1 WHERE id = $2', [gpNumber, row.id]);
     row.gp_number = gpNumber;
 
@@ -1040,9 +1091,14 @@ app.post('/admin/locations', authenticate, requireAdmin, async (req, res) => {
     const { name, photo_mandatory } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Location name is required' });
     const photoMandatory = photo_mandatory !== undefined ? Boolean(photo_mandatory) : true;
+
+    const existingPrefixes = await pool.query(`SELECT gp_prefix FROM locations WHERE gp_prefix IS NOT NULL`);
+    const usedPrefixes = new Set(existingPrefixes.rows.map((r) => r.gp_prefix));
+    const gpPrefix = generateLocationPrefix(name.trim(), usedPrefixes);
+
     const result = await pool.query(
-      'INSERT INTO locations (name, photo_mandatory) VALUES ($1, $2) RETURNING *',
-      [name.trim(), photoMandatory]
+      'INSERT INTO locations (name, photo_mandatory, gp_prefix) VALUES ($1, $2, $3) RETURNING *',
+      [name.trim(), photoMandatory, gpPrefix]
     );
     res.status(201).json({ message: 'Location created', location: result.rows[0] });
   } catch (err) {

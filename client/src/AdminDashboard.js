@@ -455,13 +455,14 @@ export default function AdminDashboard({ user, token }) {
                   <TableRow>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>#</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Location Name</TableCell>
+                    <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>GP Prefix</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Photo Capture</TableCell>
                     <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {locations.length === 0 ? (
-                    <TableRow><TableCell colSpan={4} align="center">No locations found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} align="center">No locations found.</TableCell></TableRow>
                   ) : locations.map((l) => (
                     <TableRow key={l.id} hover>
                       <TableCell>{l.id}</TableCell>
@@ -470,6 +471,11 @@ export default function AdminDashboard({ user, token }) {
                           <LocationOnIcon sx={{ color: '#ff8a00', fontSize: 18 }} />
                           <Typography>{l.name}</Typography>
                         </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title={`Next GP number: ${l.gp_prefix || '-'}-${String((l.gp_seq || 0) + 1).padStart(4, '0')}`}>
+                          <Chip label={l.gp_prefix || '-'} size="small" variant="outlined" sx={{ borderColor: '#ff8a00', color: '#ff8a00', fontWeight: 700 }} />
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <Chip

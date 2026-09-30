@@ -28,7 +28,7 @@ const uploadToCloudinary = async (base64Image) => {
 
 export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onDirty }) {
   const [date, setDate] = useState(getToday());
-  const [gpNumberPreview, setGpNumberPreview] = useState('Loading...');
+  const [gpNumberPreview, setGpNumberPreview] = useState('Select a location');
   const [type, setType] = useState('');
   const [document_number, setDocumentNumber] = useState('');
   const [document_type, setDocumentType] = useState('');
@@ -60,6 +60,15 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
   const authHeaders = token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } : { 'Content-Type': 'application/json' };
   const markDirty = () => { if (onDirty) onDirty(true); };
 
+  const fetchGpForLocation = async (loc) => {
+    if (!loc) { setGpNumberPreview('Select a location'); return; }
+    try {
+      const res = await fetch(`${apiUrl}/consignments/next-gp?location=${encodeURIComponent(loc)}`, { headers: authHeaders });
+      const data = await res.json();
+      setGpNumberPreview(data.gpNumber || 'Auto');
+    } catch { setGpNumberPreview('Auto'); }
+  };
+
   useEffect(() => {
     const fetchLocations = async () => {
       if (user?.role === 'admin') {
@@ -85,13 +94,10 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [gpRes, secRes, pkgRes] = await Promise.all([
-          fetch(`${apiUrl}/consignments/next-gp`, { headers: authHeaders }),
+        const [secRes, pkgRes] = await Promise.all([
           fetch(`${apiUrl}/dropdown-options?category=security_name`, { headers: authHeaders }),
           fetch(`${apiUrl}/dropdown-options?category=package_type`, { headers: authHeaders }),
         ]);
-        const gpData = await gpRes.json();
-        if (gpData.gpNumber) setGpNumberPreview(gpData.gpNumber);
         const secData = await secRes.json();
         if (Array.isArray(secData)) setSecurityOptions(secData.map((o) => o.value));
         const pkgData = await pkgRes.json();
@@ -100,6 +106,8 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     };
     fetchData();
   }, []);
+
+  useEffect(() => { fetchGpForLocation(location); }, [location]);
 
   const capture = () => {
     const src = webcamRef.current.getScreenshot();
@@ -126,11 +134,9 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     setSenderContact('');
     setPhoto('');
     setSecurityName('');
-    setLocation(user?.assignedLocations?.length === 1 ? user.assignedLocations[0] : '');
-    fetch(`${apiUrl}/consignments/next-gp`, { headers: authHeaders })
-      .then((r) => r.json())
-      .then((d) => { if (d.gpNumber) setGpNumberPreview(d.gpNumber); })
-      .catch(() => { setGpNumberPreview('Auto'); });
+    const newLocation = user?.assignedLocations?.length === 1 ? user.assignedLocations[0] : '';
+    setLocation(newLocation);
+    fetchGpForLocation(newLocation);
   };
 
   const submit = async (e) => {
@@ -145,6 +151,7 @@ export default function GatepassForm({ apiUrl, onGatepassAdded, token, user, onD
     if (!package_type.trim()) { alert('❌ Package Type is required'); return; }
     if (!comment.trim()) { alert('❌ Comment is required'); return; }
     if (!security_name.trim()) { alert('❌ Security Name is required'); return; }
+    if (!location.trim()) { alert('❌ Location is required'); return; }
     const locationObj = locationObjects.find((l) => l.name === location);
     const photoRequired = locationObj ? locationObj.photo_mandatory : true;
     if (photoRequired && !photo) { alert('❌ Photo is required for this location'); return; }

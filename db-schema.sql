@@ -46,6 +46,9 @@
   CREATE TABLE IF NOT EXISTS locations (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
+    photo_mandatory BOOLEAN NOT NULL DEFAULT true,
+    gp_prefix VARCHAR,
+    gp_seq INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -86,6 +89,11 @@
   ALTER TABLE consignments ALTER COLUMN vehicle_number DROP NOT NULL;
   ALTER TABLE consignments ALTER COLUMN driver_name DROP NOT NULL;
   ALTER TABLE consignments ALTER COLUMN driver_contact DROP NOT NULL;
+
+  -- Migration: per-location GP number prefix and running sequence
+  ALTER TABLE locations ADD COLUMN IF NOT EXISTS gp_prefix VARCHAR;
+  ALTER TABLE locations ADD COLUMN IF NOT EXISTS gp_seq INTEGER NOT NULL DEFAULT 0;
+  -- Prefixes for existing locations are backfilled automatically on server startup
 
   -- ============================================================
   -- VISITORS
